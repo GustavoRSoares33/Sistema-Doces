@@ -1,0 +1,1 @@
+export const CHAVE_PIX = process.env.REACT_APP_CHAVE_PIX;

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import './index.css';
 
 // Importações do Firebase Auth e Firestore
-import { collection, getDocs, doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { db, auth } from './firebase';
 
@@ -12,12 +12,13 @@ import CarrinhoModal from './components/CarrinhoModal';
 import PainelFechamento from './components/PainelFechamento';
 import GestaoProdutos from './components/GestaoProdutos';
 import Login from './components/Login';
+import HistoricoCompras from './components/HistoricoCompras';
 
 // === ATENÇÃO: COLOQUE O SEU E-MAIL AQUI PARA SER O ADMIN ===
-const EMAIL_ADMIN = "gugars04@gmail.com"; 
+const EMAIL_ADMIN = "gugars04@gmail.com";
 
 export default function App() {
-  const [usuario, setUsuario] = useState(null); 
+  const [usuario, setUsuario] = useState(null);
   const [dadosPerfil, setDadosPerfil] = useState(null);
   const [carregandoAuth, setCarregandoAuth] = useState(true);
 
@@ -27,13 +28,14 @@ export default function App() {
   const [doces, setDoces] = useState([]);
   const [carregandoDoces, setCarregandoDoces] = useState(true);
   const [produtoEditando, setProdutoEditando] = useState(null);
+  const [totalPendente, setTotalPendente] = useState(0);
 
   // Monitora se o usuário entrou ou saiu do aplicativo e busca o perfil
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUsuario(user);
-        
+
         // Busca o perfil extra (Nome) no banco de dados
         const perfilDoc = await getDoc(doc(db, "usuarios", user.uid));
         if (perfilDoc.exists()) {
@@ -118,6 +120,29 @@ export default function App() {
     setCarrinhoAberto(false);
   };
 
+  const buscarTotalPendente = async () => {
+    if (!usuario) return;
+
+    const q = query(
+      collection(db, "vendas"),
+      where("email", "==", usuario.email)
+    );
+
+    const snapshot = await getDocs(q);
+
+    const total = snapshot.docs
+      .map(doc => doc.data())
+      // Só soma se NÃO estiver pago E NÃO estiver aguardando confirmação (Pix)
+      .filter(c => !c.pago && !c.aguardandoConfirmacao) 
+      .reduce((acc, c) => acc + Number(c.total), 0);
+
+    setTotalPendente(total);
+  };
+
+  useEffect(() => {
+    buscarTotalPendente();
+  }, [usuario]);
+
   const handleSair = async () => {
     await signOut(auth);
   };
@@ -140,11 +165,11 @@ export default function App() {
           <span className="text-4xl block mb-4">✉️</span>
           <h2 className="text-xl font-bold text-gray-800 mb-2">Verifique seu E-mail</h2>
           <p className="text-gray-600 mb-6 text-sm">
-            Nós enviamos um link de ativação para <strong>{usuario.email}</strong>. 
+            Nós enviamos um link de ativação para <strong>{usuario.email}</strong>.
             Você precisa clicar nele antes de acessar a loja.
           </p>
-          <button 
-            onClick={handleSair} 
+          <button
+            onClick={handleSair}
             className="w-full bg-gray-100 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors"
           >
             Sair e tentar novamente
@@ -164,30 +189,50 @@ export default function App() {
   return (
     // 1. FUNDO DA TELA: Alterado de bg-slate-50 para bg-slate-100 para dar contraste aos cartões brancos
     <div className="min-h-screen bg-slate-200 p-4 pb-24 flex justify-center relative">
-      
+
       {/* ---------------- CONTAINER PRINCIPAL ÚNICO ---------------- */}
       <div className="w-full max-w-4xl flex flex-col gap-6 mt-2">
-        
-        {/* 2. NOVO CABEÇALHO: Fundo colorido (gradiente), texto branco e botão com transparência elegante */}
-        <div className="bg-gradient-to-r from-purple-700 to-indigo-600 rounded-2xl shadow-md p-5 flex justify-between items-center">
-          <span className="text-purple-100 font-medium text-sm sm:text-base">
-            Olá, <strong className="text-white font-bold text-base sm:text-lg">{dadosPerfil?.nome || usuario.email}</strong>
-          </span>
-          <button 
-            onClick={handleSair} 
-            className="text-sm text-white font-bold bg-white/20 hover:bg-white/30 px-5 py-2 rounded-xl transition-all border border-white/10 shadow-sm"
-          >
-            Sair
-          </button>
+
+        {/* Cabeçalho Global */}
+        <div className="bg-gradient-to-r from-purple-700 to-indigo-600 rounded-2xl shadow-md p-5 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div>
+              <span className="text-purple-100 font-medium text-sm block">
+                Olá, <strong className="text-white font-bold text-lg">{dadosPerfil?.nome || usuario.email}</strong>
+              </span>
+              {totalPendente > 0.0 && (<div className="bg-amber-50 border border-amber-200 rounded-2xl p-2 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
+                <div>
+                  <p className="text-amber-800 font-bold text-sm">Você possui pagamentos pendentes: R$ {totalPendente.toFixed(2).replace('.', ',')}</p>
+                </div>
+              </div>)}
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            {/* Botão de Histórico */}
+            <button
+              onClick={() => setTelaAtual('historico')}
+              className="text-sm text-white font-bold bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl transition-all border border-white/10 shadow-sm"
+            >
+              🛒 Meus Pedidos
+            </button>
+            {/* Botão de Sair */}
+            <button
+              onClick={handleSair}
+              className="text-sm text-red-100 font-bold bg-red-500/80 hover:bg-red-500 px-4 py-2 rounded-xl transition-all shadow-sm"
+            >
+              Sair
+            </button>
+          </div>
         </div>
 
         {/* ---------------- TELA 1: A LOJA ---------------- */}
         {telaAtual === 'loja' && (
           <div className="flex flex-col gap-4">
-            
+
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-4 w-full">
               <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight">Caixa de Doces</h1>
-              
+
               {/* Os botões de Gestão só aparecem se o usuário for o Admin */}
               {isAdmin && (
                 <div className="flex gap-2">
@@ -211,10 +256,10 @@ export default function App() {
               // GRID RESPONSIVO: 1 coluna no celular, 2 no tablet, 3 no PC
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                 {doces.map((doce) => (
-                  <DoceCard 
-                    key={doce.id} 
-                    doce={doce} 
-                    aoAdicionar={adicionarAoCarrinho} 
+                  <DoceCard
+                    key={doce.id}
+                    doce={doce}
+                    aoAdicionar={adicionarAoCarrinho}
                     aoRemover={removerDoCarrinho}
                     carrinho={carrinho}
                     isAdmin={isAdmin}
@@ -228,8 +273,8 @@ export default function App() {
             {/* BARRA DO CARRINHO FLUTUANTE (Estilo Delivery) */}
             {carrinho.length > 0 && !carrinhoAberto && (
               <div className="fixed bottom-6 left-0 w-full px-4 z-20 flex justify-center pointer-events-none">
-                <button 
-                  onClick={() => setCarrinhoAberto(true)} 
+                <button
+                  onClick={() => setCarrinhoAberto(true)}
                   className="w-full max-w-md pointer-events-auto flex justify-between items-center bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold p-4 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_10px_35px_rgb(0,0,0,0.2)] hover:-translate-y-1 transition-all duration-300"
                 >
                   <div className="flex items-center gap-3">
@@ -246,13 +291,15 @@ export default function App() {
             )}
 
             {carrinhoAberto && (
-              <CarrinhoModal 
+              <CarrinhoModal
                 carrinho={carrinho}
                 valorTotal={valorTotal}
-                fecharCarrinho={finalizarCompra} 
+                fecharCarrinho={finalizarCompra}
                 adicionarItem={adicionarAoCarrinho}
                 removerItem={removerDoCarrinho}
-                dadosUsuario={dadosPerfil} 
+                dadosUsuario={dadosPerfil}
+                idUsuario={usuario.uid}
+                atualizarTotalPendente={buscarTotalPendente}
               />
             )}
           </div>
@@ -261,19 +308,32 @@ export default function App() {
         {/* ---------------- TELA 2: O PAINEL (Só Admin) ---------------- */}
         {telaAtual === 'painel' && isAdmin && (
           <div className="w-full mt-4">
-            <PainelFechamento voltarParaLoja={() => setTelaAtual('loja')} />
+            <PainelFechamento voltarParaLoja={() => setTelaAtual('loja')}
+            atualizarTotalPendente={buscarTotalPendente}
+            />
           </div>
         )}
 
         {/* ---------------- TELA 3: GESTÃO DE PRODUTOS (Só Admin) ---------------- */}
         {telaAtual === 'produtos' && isAdmin && (
           <div className="w-full mt-4">
-            <GestaoProdutos 
+            <GestaoProdutos
               voltarParaLoja={() => {
                 setTelaAtual('loja');
                 setProdutoEditando(null);
-              }} 
+              }}
               produtoEditando={produtoEditando}
+            />
+          </div>
+        )}
+
+        {/* ---------------- TELA 4: HISTÓRICO DO CLIENTE ---------------- */}
+        {telaAtual === 'historico' && (
+          <div className="w-full mt-4">
+            <HistoricoCompras
+              voltarParaLoja={() => setTelaAtual('loja')}
+              emailUsuario={usuario.email}
+              atualizarTotalPendente={buscarTotalPendente}
             />
           </div>
         )}
