@@ -73,13 +73,13 @@ export default function App() {
     buscarProdutos();
   }, [telaAtual, usuario]);
 
-  // NOVO: Função que lida com o clique no botão Editar
+  // Função que lida com o clique no botão Editar
   const handleEditarProduto = (doce) => {
     setProdutoEditando(doce); // Guarda o doce inteiro no estado
     setTelaAtual('produtos'); // Muda para a tela de gestão
   };
 
-  // NOVO: Função que lida com o clique no botão Excluir
+  // Função que lida com o clique no botão Excluir
   const handleExcluirProduto = async (idDoce) => {
     const confirmacao = window.confirm("Tem certeza que deseja excluir este doce?");
     if (confirmacao) {
@@ -124,7 +124,7 @@ export default function App() {
 
   // 1. Se o Firebase ainda está checando o login, mostra tela de carregamento
   if (carregandoAuth) {
-    return <div className="min-h-screen flex items-center justify-center bg-slate-100 font-semibold text-gray-500">Carregando...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50 font-semibold text-gray-500">Carregando...</div>;
   }
 
   // 2. SE NÃO ESTIVER LOGADO, MOSTRA O COMPONENTE DE LOGIN E TRAVA O RESTO
@@ -133,11 +133,10 @@ export default function App() {
   }
 
   // 3. SE ESTIVER LOGADO, MAS NÃO CLICOU NO E-MAIL DE CONFIRMAÇÃO
-  // A exceção "&& usuario.email !== EMAIL_ADMIN" garante que você não fique trancado pra fora!
   if (usuario && !usuario.emailVerified && usuario.email !== EMAIL_ADMIN) {
     return (
-      <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-sm text-center">
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 w-full max-w-sm text-center">
           <span className="text-4xl block mb-4">✉️</span>
           <h2 className="text-xl font-bold text-gray-800 mb-2">Verifique seu E-mail</h2>
           <p className="text-gray-600 mb-6 text-sm">
@@ -146,7 +145,7 @@ export default function App() {
           </p>
           <button 
             onClick={handleSair} 
-            className="w-full bg-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-300 transition-colors"
+            className="w-full bg-gray-100 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors"
           >
             Sair e tentar novamente
           </button>
@@ -163,95 +162,123 @@ export default function App() {
   if (carrinho.length === 0 && carrinhoAberto) setCarrinhoAberto(false);
 
   return (
-    <div className="min-h-screen bg-slate-100 p-4 pb-24 flex flex-col items-center relative">
+    // 1. FUNDO DA TELA: Alterado de bg-slate-50 para bg-slate-100 para dar contraste aos cartões brancos
+    <div className="min-h-screen bg-slate-200 p-4 pb-24 flex justify-center relative">
       
-      {/* Cabeçalho Global para mostrar quem está logado */}
-      <div className="w-full max-w-sm flex justify-between items-center mb-2">
-        <span className="text-sm text-gray-500 font-semibold">
-          Olá, {dadosPerfil?.nome || usuario.email}
-        </span>
-        <button onClick={handleSair} className="text-sm text-red-500 font-bold hover:underline">Sair</button>
-      </div>
+      {/* ---------------- CONTAINER PRINCIPAL ÚNICO ---------------- */}
+      <div className="w-full max-w-4xl flex flex-col gap-6 mt-2">
+        
+        {/* 2. NOVO CABEÇALHO: Fundo colorido (gradiente), texto branco e botão com transparência elegante */}
+        <div className="bg-gradient-to-r from-purple-700 to-indigo-600 rounded-2xl shadow-md p-5 flex justify-between items-center">
+          <span className="text-purple-100 font-medium text-sm sm:text-base">
+            Olá, <strong className="text-white font-bold text-base sm:text-lg">{dadosPerfil?.nome || usuario.email}</strong>
+          </span>
+          <button 
+            onClick={handleSair} 
+            className="text-sm text-white font-bold bg-white/20 hover:bg-white/30 px-5 py-2 rounded-xl transition-all border border-white/10 shadow-sm"
+          >
+            Sair
+          </button>
+        </div>
 
-      {/* ---------------- TELA 1: A LOJA ---------------- */}
-      {telaAtual === 'loja' && (
-        <div className="w-full max-w-sm flex flex-col gap-4">
-          
-          <div className="flex justify-between items-center mb-4 mt-2 w-full">
-            <h1 className="text-2xl font-bold text-gray-800">Caixa de Doces</h1>
+        {/* ---------------- TELA 1: A LOJA ---------------- */}
+        {telaAtual === 'loja' && (
+          <div className="flex flex-col gap-4">
             
-            {/* Os botões de Gestão só aparecem se o usuário for o Admin */}
-            {isAdmin && (
-              <div className="flex gap-2">
-                <button onClick={() => { setProdutoEditando(null); setTelaAtual('produtos'); }} className="bg-purple-100 text-purple-700 px-3 py-1 rounded-lg font-bold text-sm shadow-sm active:bg-purple-200">
-                  + Doce
-                </button>
-                <button onClick={() => setTelaAtual('painel')} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold text-sm shadow-sm active:bg-blue-200">
-                  Caixa
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-4 w-full">
+              <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight">Caixa de Doces</h1>
+              
+              {/* Os botões de Gestão só aparecem se o usuário for o Admin */}
+              {isAdmin && (
+                <div className="flex gap-2">
+                  <button onClick={() => { setProdutoEditando(null); setTelaAtual('produtos'); }} className="bg-purple-100 text-purple-700 px-4 py-2 rounded-xl font-bold text-sm shadow-sm hover:bg-purple-200 transition-colors">
+                    + Novo Doce
+                  </button>
+                  <button onClick={() => setTelaAtual('painel')} className="bg-blue-100 text-blue-700 px-4 py-2 rounded-xl font-bold text-sm shadow-sm hover:bg-blue-200 transition-colors">
+                    💰 Abrir Caixa
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {carregandoDoces ? (
+              <p className="text-center text-gray-500 mt-10 font-semibold animate-pulse">Carregando doces...</p>
+            ) : doces.length === 0 ? (
+              <div className="bg-white p-10 rounded-3xl text-center shadow-sm border border-gray-100 mt-4">
+                <p className="text-gray-500 text-lg">Nenhum doce cadastrado ainda.</p>
+              </div>
+            ) : (
+              // GRID RESPONSIVO: 1 coluna no celular, 2 no tablet, 3 no PC
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                {doces.map((doce) => (
+                  <DoceCard 
+                    key={doce.id} 
+                    doce={doce} 
+                    aoAdicionar={adicionarAoCarrinho} 
+                    aoRemover={removerDoCarrinho}
+                    carrinho={carrinho}
+                    isAdmin={isAdmin}
+                    aoEditar={handleEditarProduto}
+                    aoExcluir={handleExcluirProduto}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* BARRA DO CARRINHO FLUTUANTE (Estilo Delivery) */}
+            {carrinho.length > 0 && !carrinhoAberto && (
+              <div className="fixed bottom-6 left-0 w-full px-4 z-20 flex justify-center pointer-events-none">
+                <button 
+                  onClick={() => setCarrinhoAberto(true)} 
+                  className="w-full max-w-md pointer-events-auto flex justify-between items-center bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold p-4 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_10px_35px_rgb(0,0,0,0.2)] hover:-translate-y-1 transition-all duration-300"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-semibold">
+                      {totalItens} {totalItens === 1 ? 'item' : 'itens'}
+                    </span>
+                    <span>Ver Carrinho</span>
+                  </div>
+                  <span className="text-lg font-extrabold">
+                    R$ {valorTotal.toFixed(2).replace('.', ',')}
+                  </span>
                 </button>
               </div>
             )}
-          </div>
 
-          {carregandoDoces ? (
-            <p className="text-center text-gray-500 mt-10 font-semibold">Carregando doces...</p>
-          ) : doces.length === 0 ? (
-            <p className="text-center text-gray-500 mt-10">Nenhum doce cadastrado ainda.</p>
-          ) : (
-            doces.map((doce) => (
-              <DoceCard 
-                key={doce.id} 
-                doce={doce} 
-                aoAdicionar={adicionarAoCarrinho} 
-                isAdmin={isAdmin}
-                aoEditar={handleEditarProduto}
-                aoExcluir={handleExcluirProduto}
+            {carrinhoAberto && (
+              <CarrinhoModal 
+                carrinho={carrinho}
+                valorTotal={valorTotal}
+                fecharCarrinho={finalizarCompra} 
+                adicionarItem={adicionarAoCarrinho}
+                removerItem={removerDoCarrinho}
+                dadosUsuario={dadosPerfil} 
               />
-            ))
-          )}
+            )}
+          </div>
+        )}
 
-          {carrinho.length > 0 && !carrinhoAberto && (
-            <div className="fixed bottom-0 left-0 w-full p-4 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10">
-              <button onClick={() => setCarrinhoAberto(true)} className="w-full max-w-sm mx-auto flex justify-between items-center bg-green-600 text-white font-bold p-4 rounded-xl shadow-lg active:bg-green-700 transition-colors">
-                <span>Ver Carrinho ({totalItens})</span>
-                <span>R$ {valorTotal.toFixed(2).replace('.', ',')}</span>
-              </button>
-            </div>
-          )}
+        {/* ---------------- TELA 2: O PAINEL (Só Admin) ---------------- */}
+        {telaAtual === 'painel' && isAdmin && (
+          <div className="w-full mt-4">
+            <PainelFechamento voltarParaLoja={() => setTelaAtual('loja')} />
+          </div>
+        )}
 
-          {carrinhoAberto && (
-            <CarrinhoModal 
-              carrinho={carrinho}
-              valorTotal={valorTotal}
-              fecharCarrinho={finalizarCompra} 
-              adicionarItem={adicionarAoCarrinho}
-              removerItem={removerDoCarrinho}
-              dadosUsuario={dadosPerfil} // Passamos o perfil com nome e email
+        {/* ---------------- TELA 3: GESTÃO DE PRODUTOS (Só Admin) ---------------- */}
+        {telaAtual === 'produtos' && isAdmin && (
+          <div className="w-full mt-4">
+            <GestaoProdutos 
+              voltarParaLoja={() => {
+                setTelaAtual('loja');
+                setProdutoEditando(null);
+              }} 
+              produtoEditando={produtoEditando}
             />
-          )}
-        </div>
-      )}
+          </div>
+        )}
 
-      {/* ---------------- TELA 2: O PAINEL (Só Admin) ---------------- */}
-      {telaAtual === 'painel' && isAdmin && (
-        <div className="w-full mt-4">
-          <PainelFechamento voltarParaLoja={() => setTelaAtual('loja')} />
-        </div>
-      )}
-
-      {/* ---------------- TELA 3: GESTÃO DE PRODUTOS (Só Admin) ---------------- */}
-      {telaAtual === 'produtos' && isAdmin && (
-        <div className="w-full mt-4">
-          <GestaoProdutos 
-            voltarParaLoja={() => {
-              setTelaAtual('loja');
-              setProdutoEditando(null); // Limpa ao cancelar/voltar
-            }} 
-            produtoEditando={produtoEditando}
-          />
-        </div>
-      )}
-
+      </div>
     </div>
   );
 }
