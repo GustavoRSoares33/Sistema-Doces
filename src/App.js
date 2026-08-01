@@ -141,6 +141,7 @@ export default function App() {
 
   useEffect(() => {
     buscarTotalPendente();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usuario]);
 
   const handleSair = async () => {

@@ -38,6 +38,7 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
     if (emailUsuario) {
       buscarHistorico();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [emailUsuario]);
 
   const copiarChavePix = () => {
