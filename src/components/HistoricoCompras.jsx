@@ -6,25 +6,25 @@ import { CHAVE_PIX } from '../config';
 export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualizarTotalPendente }) {
   const [compras, setCompras] = useState([]);
   const [carregando, setCarregando] = useState(true);
-  
+
   // Controle do Modal de Pix
   const [vendaPix, setVendaPix] = useState(null);
   const [processandoPix, setProcessandoPix] = useState(false);
   const [copiado, setCopiado] = useState(false);
-  
+
   // NOVO: Controle da tela de sucesso após confirmar o Pix
-  const [sucessoPix, setSucessoPix] = useState(false); 
+  const [sucessoPix, setSucessoPix] = useState(false);
 
   const buscarHistorico = async () => {
     try {
       const q = query(collection(db, "vendas"), where("email", "==", emailUsuario));
       const querySnapshot = await getDocs(q);
-      
+
       const listaCompras = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data()
       }));
-      
+
       listaCompras.sort((a, b) => new Date(b.data) - new Date(a.data));
       setCompras(listaCompras);
     } catch (error) {
@@ -52,10 +52,10 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
     setProcessandoPix(true);
     try {
       const vendaRef = doc(db, "vendas", vendaPix.id);
-      
+
       await updateDoc(vendaRef, { aguardandoConfirmacao: true });
 
-      setCompras((atual) => 
+      setCompras((atual) =>
         atual.map((c) => c.id === vendaPix.id ? { ...c, aguardandoConfirmacao: true } : c)
       );
 
@@ -65,7 +65,7 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
 
       // Ativa a tela de sucesso
       setSucessoPix(true);
-      
+
       // Espera 2.5 segundos e limpa tudo, fechando o modal suavemente
       setTimeout(() => {
         setVendaPix(null);
@@ -86,11 +86,11 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
 
   return (
     <div className="w-full flex flex-col gap-6 relative">
-      
+
       {/* ---------------- MODAL DO PIX ---------------- */}
       {vendaPix && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          
+
           {sucessoPix ? (
             /* NOVA TELA DE SUCESSO (Substitui o Alert) */
             <div className="bg-white w-full max-w-sm rounded-3xl p-8 flex flex-col items-center justify-center shadow-2xl animate-fade-in-up">
@@ -103,7 +103,7 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
           ) : (
             /* TELA NORMAL DO PIX */
             <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl flex flex-col animate-fade-in-up overflow-hidden">
-              
+
               <div className="bg-emerald-500 w-full pt-6 pb-8 px-4 flex flex-col items-center relative">
                 <button onClick={() => setVendaPix(null)} className="absolute top-4 right-4 bg-black/10 text-white hover:bg-black/20 w-8 h-8 rounded-full flex items-center justify-center transition-colors">
                   ✕
@@ -112,7 +112,7 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
                   💠
                 </div>
               </div>
-              
+
               <div className="p-6 flex flex-col items-center bg-white -mt-4 rounded-t-3xl">
                 <h3 className="text-xl font-extrabold text-gray-800 mb-1">Pagamento via Pix</h3>
                 <p className="text-gray-500 text-sm text-center mb-6">
@@ -128,7 +128,7 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
                   <p className="text-sm font-bold text-gray-700 mb-2">Chave Pix (E-mail):</p>
                   <div className="flex bg-slate-100 p-2 rounded-xl border border-gray-200 items-center justify-between">
                     <span className="font-mono text-gray-600 font-medium pl-2 select-all">{CHAVE_PIX}</span>
-                    <button 
+                    <button
                       onClick={copiarChavePix}
                       className="bg-white px-3 py-1.5 rounded-lg shadow-sm text-sm font-bold text-emerald-600 hover:bg-emerald-50 transition-colors border border-gray-200"
                     >
@@ -137,7 +137,7 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
                   </div>
                 </div>
 
-                <button 
+                <button
                   onClick={confirmarEnvioPix}
                   disabled={processandoPix}
                   className="w-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold py-4 rounded-xl shadow-md transition-all flex justify-center items-center"
@@ -154,10 +154,13 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex justify-between items-center w-full">
         <h2 className="text-2xl font-extrabold text-gray-800">Meus Pedidos</h2>
-        <button 
+        <button
           onClick={voltarParaLoja}
-          className="text-sm text-blue-600 font-bold hover:bg-blue-50 px-4 py-2 rounded-xl transition-colors"
+          className="group flex items-center gap-2 text-sm text-gray-600 font-bold bg-white hover:bg-gray-50 px-4 py-2.5 rounded-xl border border-gray-200 transition-all active:scale-95 shadow-sm"
         >
+          <span className="transition-transform duration-300 group-hover:-translate-x-1">
+            ←
+          </span>
           Voltar à Loja
         </button>
       </div>
@@ -181,11 +184,11 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
           {compras.map((compra) => (
             <div key={compra.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between">
-              
+
               <div>
                 <div className="flex justify-between items-center mb-3 border-b border-gray-100 pb-3">
                   <span className="text-xs text-gray-400 font-medium">{new Date(compra.data).toLocaleString('pt-BR')}</span>
-                  
+
                   {compra.pago ? (
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-green-100 text-green-700">Pago</span>
                   ) : compra.aguardandoConfirmacao ? (
@@ -194,7 +197,7 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-amber-100 text-amber-700">Pendente</span>
                   )}
                 </div>
-                
+
                 <div className="mb-4 bg-slate-50 p-3 rounded-xl border border-gray-100">
                   <p className="text-xs font-bold text-gray-400 uppercase mb-2">Itens:</p>
                   {compra.itens?.map((item, i) => (
@@ -213,7 +216,7 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
                 </div>
 
                 {!compra.pago && !compra.aguardandoConfirmacao && (
-                  <button 
+                  <button
                     onClick={() => setVendaPix(compra)}
                     className="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 font-bold py-3 rounded-xl transition-all shadow-sm flex justify-center items-center text-sm"
                   >

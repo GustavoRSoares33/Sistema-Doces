@@ -7,12 +7,13 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { db, auth } from './firebase';
 
 // Componentes
-import DoceCard from './components/DoceCard';
-import CarrinhoModal from './components/CarrinhoModal';
-import PainelFechamento from './components/PainelFechamento';
-import GestaoProdutos from './components/GestaoProdutos';
+import PainelFechamento from './components/Admin/PainelFechamento';
+import GestaoProdutos from './components/Admin/GestaoProdutos';
 import Login from './components/Login';
 import HistoricoCompras from './components/HistoricoCompras';
+import Cabebecalho from './components/Cabeçalho/Cabecalho'
+import TelaLoja from './components/TelaLoja/TelaLoja'
+import MenuAdmin from './components/Admin/MenuAdmin';
 
 // === ATENÇÃO: COLOQUE O SEU E-MAIL AQUI PARA SER O ADMIN ===
 const EMAIL_ADMIN = "gugars04@gmail.com";
@@ -133,7 +134,7 @@ export default function App() {
     const total = snapshot.docs
       .map(doc => doc.data())
       // Só soma se NÃO estiver pago E NÃO estiver aguardando confirmação (Pix)
-      .filter(c => !c.pago && !c.aguardandoConfirmacao) 
+      .filter(c => !c.pago && !c.aguardandoConfirmacao)
       .reduce((acc, c) => acc + Number(c.total), 0);
 
     setTotalPendente(total);
@@ -194,133 +195,64 @@ export default function App() {
       {/* ---------------- CONTAINER PRINCIPAL ÚNICO ---------------- */}
       <div className="w-full max-w-4xl flex flex-col gap-6 mt-2">
 
-        {/* Cabeçalho Global */}
-        <div className="bg-gradient-to-r from-purple-700 to-indigo-600 rounded-2xl shadow-md p-5 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div>
-              <span className="text-purple-100 font-medium text-sm block">
-                Olá, <strong className="text-white font-bold text-lg">{dadosPerfil?.nome || usuario.email}</strong>
-              </span>
-              {totalPendente > 0.0 && (<div className="bg-amber-50 border border-amber-200 rounded-2xl p-2 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
-                <div>
-                  <p className="text-amber-800 font-bold text-sm">Você possui pagamentos pendentes: R$ {totalPendente.toFixed(2).replace('.', ',')}</p>
-                </div>
-              </div>)}
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            {/* Botão de Histórico */}
-            <button
-              onClick={() => setTelaAtual('historico')}
-              className="text-sm text-white font-bold bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl transition-all border border-white/10 shadow-sm"
-            >
-              🛒 Meus Pedidos
-            </button>
-            {/* Botão de Sair */}
-            <button
-              onClick={handleSair}
-              className="text-sm text-red-100 font-bold bg-red-500/80 hover:bg-red-500 px-4 py-2 rounded-xl transition-all shadow-sm"
-            >
-              Sair
-            </button>
-          </div>
-        </div>
+        <Cabebecalho
+          dadosPerfil={dadosPerfil}
+          usuario={usuario}
+          totalPendente={totalPendente}
+          setTelaAtual={setTelaAtual}
+          handleSair={handleSair}
+          isAdmin={isAdmin}
+        />
 
         {/* ---------------- TELA 1: A LOJA ---------------- */}
         {telaAtual === 'loja' && (
-          <div className="flex flex-col gap-4">
-
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-4 w-full">
-              <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight">Caixa de Doces</h1>
-
-              {/* Os botões de Gestão só aparecem se o usuário for o Admin */}
-              {isAdmin && (
-                <div className="flex gap-2">
-                  <button onClick={() => { setProdutoEditando(null); setTelaAtual('produtos'); }} className="bg-purple-100 text-purple-700 px-4 py-2 rounded-xl font-bold text-sm shadow-sm hover:bg-purple-200 transition-colors">
-                    + Novo Doce
-                  </button>
-                  <button onClick={() => setTelaAtual('painel')} className="bg-blue-100 text-blue-700 px-4 py-2 rounded-xl font-bold text-sm shadow-sm hover:bg-blue-200 transition-colors">
-                    💰 Abrir Caixa
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {carregandoDoces ? (
-              <p className="text-center text-gray-500 mt-10 font-semibold animate-pulse">Carregando doces...</p>
-            ) : doces.length === 0 ? (
-              <div className="bg-white p-10 rounded-3xl text-center shadow-sm border border-gray-100 mt-4">
-                <p className="text-gray-500 text-lg">Nenhum doce cadastrado ainda.</p>
-              </div>
-            ) : (
-              // GRID RESPONSIVO: 1 coluna no celular, 2 no tablet, 3 no PC
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-                {doces.map((doce) => (
-                  <DoceCard
-                    key={doce.id}
-                    doce={doce}
-                    aoAdicionar={adicionarAoCarrinho}
-                    aoRemover={removerDoCarrinho}
-                    carrinho={carrinho}
-                    isAdmin={isAdmin}
-                    aoEditar={handleEditarProduto}
-                    aoExcluir={handleExcluirProduto}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* BARRA DO CARRINHO FLUTUANTE (Estilo Delivery) */}
-            {carrinho.length > 0 && !carrinhoAberto && (
-              <div className="fixed bottom-6 left-0 w-full px-4 z-20 flex justify-center pointer-events-none">
-                <button
-                  onClick={() => setCarrinhoAberto(true)}
-                  className="w-full max-w-md pointer-events-auto flex justify-between items-center bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold p-4 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_10px_35px_rgb(0,0,0,0.2)] hover:-translate-y-1 transition-all duration-300"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-semibold">
-                      {totalItens} {totalItens === 1 ? 'item' : 'itens'}
-                    </span>
-                    <span>Ver Carrinho</span>
-                  </div>
-                  <span className="text-lg font-extrabold">
-                    R$ {valorTotal.toFixed(2).replace('.', ',')}
-                  </span>
-                </button>
-              </div>
-            )}
-
-            {carrinhoAberto && (
-              <CarrinhoModal
-                carrinho={carrinho}
-                valorTotal={valorTotal}
-                fecharCarrinho={finalizarCompra}
-                adicionarItem={adicionarAoCarrinho}
-                removerItem={removerDoCarrinho}
-                dadosUsuario={dadosPerfil}
-                idUsuario={usuario.uid}
-                atualizarTotalPendente={buscarTotalPendente}
-              />
-            )}
-          </div>
+          <TelaLoja
+            isAdmin={isAdmin}
+            setProdutoEditando={setProdutoEditando}
+            setTelaAtual={setTelaAtual}
+            carregandoDoces={carregandoDoces}
+            doces={doces}
+            adicionarAoCarrinho={adicionarAoCarrinho}
+            removerDoCarrinho={removerDoCarrinho}
+            carrinho={carrinho}
+            handleEditarProduto={handleEditarProduto}
+            handleExcluirProduto={handleExcluirProduto}
+            carrinhoAberto={carrinhoAberto}
+            setCarrinhoAberto={setCarrinhoAberto}
+            totalItens={totalItens}
+            valorTotal={valorTotal}
+            finalizarCompra={finalizarCompra}
+            dadosPerfil={dadosPerfil}
+            usuario={usuario}
+            buscarTotalPendente={buscarTotalPendente}
+          />
         )}
 
-        {/* ---------------- TELA 2: O PAINEL (Só Admin) ---------------- */}
+        {/* ---------------- TELA ADMIN HUB (NOVO) ---------------- */}
+        {telaAtual === 'admin' && isAdmin && (
+          <MenuAdmin
+            setTelaAtual={setTelaAtual}
+            setProdutoEditando={setProdutoEditando}
+            voltarParaLoja={() => setTelaAtual('loja')}
+          />
+        )}
+
+        {/* ---------------- TELA 2: O PAINEL ---------------- */}
         {telaAtual === 'painel' && isAdmin && (
           <div className="w-full mt-4">
-            <PainelFechamento voltarParaLoja={() => setTelaAtual('loja')}
-            atualizarTotalPendente={buscarTotalPendente}
+            <PainelFechamento
+              voltarParaLoja={() => setTelaAtual('admin')} // <- Voltar vai para o Menu Admin agora
+              atualizarTotalPendente={buscarTotalPendente}
             />
           </div>
         )}
 
-        {/* ---------------- TELA 3: GESTÃO DE PRODUTOS (Só Admin) ---------------- */}
+        {/* ---------------- TELA 3: GESTÃO DE PRODUTOS ---------------- */}
         {telaAtual === 'produtos' && isAdmin && (
           <div className="w-full mt-4">
             <GestaoProdutos
               voltarParaLoja={() => {
-                setTelaAtual('loja');
+                setTelaAtual('admin'); // <- Voltar vai para o Menu Admin agora
                 setProdutoEditando(null);
               }}
               produtoEditando={produtoEditando}
