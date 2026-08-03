@@ -1,15 +1,35 @@
 import { useState } from 'react';
-import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { CHAVE_PIX } from '../config';
 
-export default function CarrinhoModal({ carrinho, valorTotal, fecharCarrinho, adicionarItem, removerItem, dadosUsuario, atualizarTotalPendente }) {
+import logoPix from './Images/logoPix.png';
+import logoVR from './Images/logoVR.png';
+
+export default function CarrinhoModal({ 
+  carrinho, 
+  valorTotal, 
+  fecharCarrinho, 
+  adicionarItem, 
+  removerItem, 
+  dadosUsuario, 
+  idUsuario, 
+  atualizarTotalPendente 
+}) {
   const [etapa, setEtapa] = useState('carrinho');
   const [processando, setProcessando] = useState(false);
   const [copiado, setCopiado] = useState(false);
   
-  // NOVO: Guarda o ID da venda recém-criada para podermos alterá-la se o usuário confirmar o Pix
+  // Guarda o ID da venda recém-criada
   const [vendaId, setVendaId] = useState(null); 
+
+  // NOVO: Estado para armazenar e validar o WhatsApp do VR (Inicia preenchido se o perfil já tiver)
+  const [telefoneVR, setTelefoneVR] = useState(() => {
+    if (dadosUsuario?.telefone) {
+      return dadosUsuario.telefone.replace(/^55/, ''); // Remove o 55 inicial para exibir limpo no input
+    }
+    return '';
+  });
 
   const valorTotalNumerico = Number(valorTotal) || 0;
 
@@ -29,13 +49,11 @@ export default function CarrinhoModal({ carrinho, valorTotal, fecharCarrinho, ad
         total: valorTotalNumerico,
         data: new Date().toISOString(),
         pago: false,
-        // CORREÇÃO AQUI: Todo pedido nasce como "Fiado/Pendente" por padrão (false)
-        aguardandoConfirmacao: false 
+        aguardandoConfirmacao: false,
+        telefone: dadosUsuario?.telefone || '' // Salva o telefone do perfil caso já exista
       };
       
       const docRef = await addDoc(collection(db, "vendas"), novaVenda);
-      
-      // Salva o ID do documento que acabamos de criar
       setVendaId(docRef.id);
 
       if (atualizarTotalPendente) {
@@ -43,10 +61,9 @@ export default function CarrinhoModal({ carrinho, valorTotal, fecharCarrinho, ad
       }
 
       if (metodo === 'pix') {
-        setEtapa('pix'); // Vai para a tela mostrar a chave
-      } else {
-        setEtapa('sucesso');
-        setTimeout(() => fecharCarrinho(), 2500);
+        setEtapa('pix');
+      } else if (metodo === 'vr') {
+        setEtapa('vr');
       }
     } catch (error) {
       console.error("Erro ao salvar:", error);
@@ -56,11 +73,9 @@ export default function CarrinhoModal({ carrinho, valorTotal, fecharCarrinho, ad
     }
   };
 
-  // NOVO: Função que só roda se o usuário clicar no botão "Já realizei o pagamento"
   const confirmarPagamentoPix = async () => {
     setProcessando(true);
     try {
-      // Atualiza o documento no banco para "Em Análise"
       const vendaRef = doc(db, "vendas", vendaId);
       await updateDoc(vendaRef, { aguardandoConfirmacao: true });
       
@@ -78,19 +93,58 @@ export default function CarrinhoModal({ carrinho, valorTotal, fecharCarrinho, ad
     }
   };
 
+  // NOVO: Função para confirmar o pedido VR validando e salvando o WhatsApp
+  const confirmarPagamentoVR = async () => {
+    const apenasNumeros = telefoneVR.replace(/\D/g, '');
+
+    const regexCelularBR = /^[1-9]{2}9[0-9]{8}$/;
+
+    if (!regexCelularBR.test(apenasNumeros)) {
+      alert("Número inválido! Digite o DDD e o número do celular começando com 9. Ex: 16999999999");
+      return;
+    }
+
+    setProcessando(true);
+    try {
+      const telefoneFormatado = `55${apenasNumeros}`;
+
+      // 1. Atualiza o registro desta venda no Firestore com o telefone informado
+      if (vendaId) {
+        const vendaRef = doc(db, "vendas", vendaId);
+        await updateDoc(vendaRef, { telefone: telefoneFormatado });
+      }
+
+      // 2. Atualiza/Salva o telefone no perfil do Usuário para as próximas compras
+      if (idUsuario) {
+        const usuarioRef = doc(db, "usuarios", idUsuario);
+        await setDoc(usuarioRef, { telefone: telefoneFormatado }, { merge: true });
+      }
+
+      if (atualizarTotalPendente) {
+        atualizarTotalPendente();
+      }
+
+      setEtapa('sucesso');
+      setTimeout(() => fecharCarrinho(), 2500);
+    } catch (error) {
+      console.error("Erro ao confirmar VR:", error);
+      alert("Erro ao salvar WhatsApp. Tente novamente.");
+    } finally {
+      setProcessando(false);
+    }
+  };
+
   const copiarChavePix = () => {
     navigator.clipboard.writeText(CHAVE_PIX);
     setCopiado(true);
     setTimeout(() => setCopiado(false), 2000);
   };
 
-  // NOVO: Função se o usuário desistir do Pix na hora (clicar no X)
   const fecharModalPix = () => {
-    // O pedido já está salvo como Pendente no banco. Apenas fechamos tudo.
     fecharCarrinho(); 
   };
 
-  // ================= TELA 4: SUCESSO =================
+  // ================= TELA 5: SUCESSO =================
   if (etapa === 'sucesso') {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 transition-all">
@@ -100,6 +154,68 @@ export default function CarrinhoModal({ carrinho, valorTotal, fecharCarrinho, ad
           </div>
           <h2 className="text-2xl font-extrabold text-gray-800 mb-2 text-center">Pedido Confirmado!</h2>
           <p className="text-gray-500 text-center font-medium">Sua venda foi registrada com sucesso.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ================= TELA 4: VR (COM INPUT DE TELEFONE) =================
+  if (etapa === 'vr') {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl flex flex-col animate-fade-in-up overflow-hidden">
+          
+          <div className="bg-emerald-500 w-full pt-6 pb-8 px-4 flex flex-col items-center relative">
+            <button onClick={fecharModalPix} className="absolute top-4 right-4 bg-black/10 text-white hover:bg-black/20 w-8 h-8 rounded-full flex items-center justify-center transition-colors">
+              ✕
+            </button>
+            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-md text-3xl mt-2 overflow-hidden">
+              <img 
+                src={logoVR} 
+                alt="Logo do VR" 
+                className="w-full h-full object-contain" 
+              />
+            </div>
+          </div>
+          
+          <div className="p-6 flex flex-col items-center bg-white -mt-4 rounded-t-3xl">
+            <h3 className="text-xl font-extrabold text-gray-800 mb-1">Pagamento via VR</h3>
+
+            <div className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-3 text-center">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Valor a pagar</p>
+              <p className="text-3xl font-extrabold text-emerald-600">R$ {valorTotalNumerico.toFixed(2).replace('.', ',')}</p>
+            </div>
+
+            <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl p-3 mb-4 text-center">
+              <p className="text-xs font-bold text-amber-800">
+                📌 No final do mês enviaremos o link de pagamento do VR direto no seu WhatsApp!
+              </p>
+            </div>
+
+            {/* CAMPO DE WHATSAPP OBRIGATÓRIO */}
+            <div className="w-full mb-5">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                Seu WhatsApp (com DDD) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="tel"
+                placeholder="Ex: 16999999999"
+                value={telefoneVR}
+                onChange={(e) => setTelefoneVR(e.target.value.replace(/\D/g, ''))}
+                maxLength={11}
+                className="w-full bg-slate-50 border border-gray-300 rounded-xl px-4 py-3 text-sm font-semibold text-gray-800 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">Digite apenas números (DDD + celular)</p>
+            </div>
+
+            <button 
+              onClick={confirmarPagamentoVR}
+              disabled={processando}
+              className="w-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold py-4 rounded-xl shadow-md transition-all flex justify-center items-center disabled:bg-emerald-300"
+            >
+              {processando ? 'Confirmando...' : 'Concluir Pedido'}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -115,8 +231,12 @@ export default function CarrinhoModal({ carrinho, valorTotal, fecharCarrinho, ad
             <button onClick={fecharModalPix} className="absolute top-4 right-4 bg-black/10 text-white hover:bg-black/20 w-8 h-8 rounded-full flex items-center justify-center transition-colors">
               ✕
             </button>
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-md text-3xl mt-2">
-              💠
+            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-md text-3xl mt-2 overflow-hidden">
+              <img 
+                src={logoPix} 
+                alt="Logo do Pix" 
+                className="w-full h-full object-contain" 
+              />
             </div>
           </div>
           
@@ -179,17 +299,17 @@ export default function CarrinhoModal({ carrinho, valorTotal, fecharCarrinho, ad
                 type="button"
                 onClick={() => processarPedido('pix')}
                 disabled={processando}
-                className="w-full bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-md hover:bg-emerald-600 active:scale-95 transition-all"
+                className="w-full bg-blue-500 text-white font-bold py-4 rounded-xl shadow-md hover:bg-blue-600 active:scale-95 transition-all"
               >
                 {processando ? 'Processando...' : 'Pagar Agora via Pix'}
               </button>
               <button 
                 type="button"
-                onClick={() => processarPedido('fiado')}
+                onClick={() => processarPedido('vr')}
                 disabled={processando}
-                className="w-full bg-white text-gray-700 border-2 border-gray-200 font-bold py-4 rounded-xl hover:bg-gray-50 active:scale-95 transition-all"
+                className="w-full bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-md hover:bg-emerald-600 active:scale-95 transition-all"
               >
-                Pagar Depois (Fiado)
+                Pagar Depois Com VR
               </button>
             </div>
           </div>

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 
+import {gerarRelatorioPDF} from './GerarPdf'
+
 export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendente }) {
   const [vendas, setVendas] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -9,9 +11,15 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
   const [termoBusca, setTermoBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('todos');
 
-  // NOVO: Estados para controlar o Modal de Recusa
+  // Estados para controlar o Modal de Recusa
   const [vendaRecusar, setVendaRecusar] = useState(null);
   const [processandoAcao, setProcessandoAcao] = useState(false);
+
+  // Estado para controlar o mês do PDF (Formato padrão do HTML5: YYYY-MM)
+  const [mesRelatorio, setMesRelatorio] = useState(() => {
+    const hoje = new Date();
+    return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+  });
 
   useEffect(() => {
     const buscarVendas = async () => {
@@ -49,7 +57,6 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
         )
       );
 
-      // Atualiza o aviso amarelo (caso você esteja testando na sua própria conta)
       if (atualizarTotalPendente) atualizarTotalPendente();
 
     } catch (error) {
@@ -58,7 +65,6 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
     }
   };
 
-  // NOVO: Função que efetiva a recusa a partir do Modal
   const confirmarRecusa = async () => {
     setProcessandoAcao(true);
     try {
@@ -74,10 +80,9 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
         )
       );
 
-      // Atualiza o aviso amarelo instantaneamente
       if (atualizarTotalPendente) atualizarTotalPendente();
 
-      setVendaRecusar(null); // Fecha o modal
+      setVendaRecusar(null); 
     } catch (error) {
       console.error("Erro ao recusar pagamento:", error);
       alert("Erro ao tentar recusar o pagamento.");
@@ -138,8 +143,8 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
           </div>
         </div>
       )}
-      {/* ================================================== */}
 
+      {/* ================= CABEÇALHO DO CAIXA ================= */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex justify-between items-center w-full">
         <h2 className="text-2xl font-extrabold text-gray-800">Caixa Registradora</h2>
         <button
@@ -153,6 +158,36 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
         </button>
       </div>
 
+      {/* ================= BARRA DE RELATÓRIOS ================= */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 flex flex-col sm:flex-row justify-between items-center gap-4 w-full">
+        
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center text-xl shrink-0">
+            📅
+          </div>
+          <div className="flex flex-col w-full">
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+              Mês do Fechamento
+            </label>
+            <input
+              type="month"
+              value={mesRelatorio}
+              onChange={(e) => setMesRelatorio(e.target.value)}
+              className="w-full bg-slate-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-colors"
+            />
+          </div>
+        </div>
+
+        <button 
+          onClick={() => gerarRelatorioPDF(vendas, mesRelatorio)} 
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-800 text-white font-bold px-6 py-3 rounded-xl hover:bg-slate-700 active:scale-95 transition-all shadow-sm text-sm"
+        >
+          📄 Baixar Relatório (PDF)
+        </button>
+
+      </div>
+
+      {/* ================= BARRA DE BUSCA E FILTROS ================= */}
       {!carregando && vendas.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col lg:flex-row gap-4 justify-between items-center w-full">
 
@@ -198,6 +233,7 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
         </div>
       )}
 
+      {/* ================= LISTAGEM DE VENDAS ================= */}
       {carregando ? (
         <p className="text-center text-gray-500 my-10 font-semibold animate-pulse">Carregando dados do banco...</p>
       ) : (
@@ -253,7 +289,6 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
                   {!venda.pago ? (
                     venda.aguardandoConfirmacao ? (
                       <div className="flex gap-2 w-full mt-2">
-                        {/* NOVO: Botão agora abre o Modal em vez de disparar um alert() */}
                         <button
                           onClick={() => setVendaRecusar(venda)}
                           className="w-1/3 font-bold py-3 rounded-xl transition-all duration-300 active:scale-95 bg-red-50 text-red-600 border border-red-100 hover:bg-red-600 hover:text-white text-sm"

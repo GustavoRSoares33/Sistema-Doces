@@ -1,3 +1,5 @@
+import logoVR from '../Images/logoVR.png'
+
 const MenuAdmin = ({ setTelaAtual, setProdutoEditando, voltarParaLoja }) => {
     return (
         <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto mt-4 animate-fade-in-up">
@@ -41,6 +43,22 @@ const MenuAdmin = ({ setTelaAtual, setProdutoEditando, voltarParaLoja }) => {
                     </div>
                     <h3 className="text-xl font-extrabold text-gray-800 mb-2">Gerenciar Vitrine</h3>
                     <p className="text-gray-500 text-sm font-medium">Adicione novos doces, edite preços ou remova itens do catálogo.</p>
+                </button>
+
+                {/* Card 3: Fechamento VR */}
+                <button
+                    onClick={() => setTelaAtual('fechamentoVR')}
+                    className="bg-white p-8 rounded-3xl shadow-sm border border-gray-200 hover:shadow-lg hover:border-blue-300 transition-all flex flex-col items-center text-center group active:scale-95"
+                >
+                    <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-4xl mb-4 group-hover:scale-110 group-hover:bg-blue-100 transition-all duration-300">
+                        <img 
+                            src={logoVR} 
+                            alt="Logo do VR" 
+                            className="w-full h-full object-contain" 
+                        />
+                    </div>
+                    <h3 className="text-xl font-extrabold text-gray-800 mb-2">Cobrar Pagamento VR</h3>
+                    <p className="text-gray-500 text-sm font-medium">Veja a lista cobranças no VR e envie o link para os clientes.</p>
                 </button>
 
             </div>

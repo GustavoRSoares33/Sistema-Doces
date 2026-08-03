@@ -14,6 +14,7 @@ import HistoricoCompras from './components/HistoricoCompras';
 import Cabebecalho from './components/Cabeçalho/Cabecalho'
 import TelaLoja from './components/TelaLoja/TelaLoja'
 import MenuAdmin from './components/Admin/MenuAdmin';
+import FechamentoVR from './components/Admin/FechamentoVR'
 
 // === ATENÇÃO: COLOQUE O SEU E-MAIL AQUI PARA SER O ADMIN ===
 const EMAIL_ADMIN = "gugars04@gmail.com";
@@ -267,6 +268,15 @@ export default function App() {
               voltarParaLoja={() => setTelaAtual('loja')}
               emailUsuario={usuario.email}
               atualizarTotalPendente={buscarTotalPendente}
+            />
+          </div>
+        )}
+
+        {/* ---------------- TELA 5: FECHAMENTO VR ---------------- */}
+        {telaAtual === 'fechamentoVR' && isAdmin && (
+          <div className="w-full mt-4">
+            <FechamentoVR
+              voltarParaLoja={() => setTelaAtual('admin')} // <- Voltar vai para o Menu Admin agora
             />
           </div>
         )}
