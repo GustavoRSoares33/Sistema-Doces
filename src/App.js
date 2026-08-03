@@ -125,6 +125,7 @@ export default function App() {
   const buscarTotalPendente = async () => {
     if (!usuario) return;
 
+    // Busca SOMENTE as compras do e-mail da conta logada
     const q = query(
       collection(db, "vendas"),
       where("email", "==", usuario.email)
@@ -134,8 +135,8 @@ export default function App() {
 
     const total = snapshot.docs
       .map(doc => doc.data())
-      // Só soma se NÃO estiver pago E NÃO estiver aguardando confirmação (Pix)
-      .filter(c => !c.pago && !c.aguardandoConfirmacao)
+      // Soma todas as compras da conta que ainda não foram pagas
+      .filter(c => !c.pago)
       .reduce((acc, c) => acc + Number(c.total), 0);
 
     setTotalPendente(total);

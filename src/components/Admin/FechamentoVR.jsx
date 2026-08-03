@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../../firebase'; // Ajuste o caminho do firebase se necessário
+import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../firebase'; 
 
-// Importando a nossa nova função separada!
 import { enviarCobrancaWhatsApp } from '../utils/EnviarMensagemWhatsapp';
 
 export default function FechamentoVR({ voltarParaLoja }) {
   const [clientesDevedores, setClientesDevedores] = useState([]);
   const [carregando, setCarregando] = useState(true);
   
-  // Guarda os links de VR que você vai colar
   const [linksVR, setLinksVR] = useState({});
+  const [baixandoPagamento, setBaixandoPagamento] = useState({});
+  
+  // NOVO: Estado para rastrear quais clientes já tiveram a cobrança enviada
+  const [cobrancasEnviadas, setCobrancasEnviadas] = useState({});
 
   useEffect(() => {
     const buscarPendencias = async () => {
@@ -21,7 +23,7 @@ export default function FechamentoVR({ voltarParaLoja }) {
         querySnapshot.docs.forEach(documento => {
           const venda = documento.data();
           
-          if (!venda.pago && !venda.aguardandoConfirmacao) {
+          if (!venda.pago && !venda.aguardandoConfirmacao && venda.metodoPagamento === 'vr') {
             const email = venda.email;
             
             if (!agrupado[email]) {
@@ -31,22 +33,24 @@ export default function FechamentoVR({ voltarParaLoja }) {
                 telefone: venda.telefone || '', 
                 totalDevido: 0,
                 qtdPedidos: 0,
-                itensComprados: {} // NOVO: Dicionário para guardar as quantidades de cada doce
+                itensComprados: {},
+                vendaIds: []
               };
+            } else {
+              if (!agrupado[email].telefone && venda.telefone) {
+                agrupado[email].telefone = venda.telefone;
+              }
             }
             
-            // Soma o dinheiro e a quantidade de pedidos
             agrupado[email].totalDevido += Number(venda.total);
             agrupado[email].qtdPedidos += 1;
+            agrupado[email].vendaIds.push(documento.id);
 
-            // NOVO: Varre os itens daquela venda e soma as quantidades no perfil do cliente
             if (venda.itens) {
               venda.itens.forEach(item => {
-                // Se o doce ainda não está na lista desse cliente, começa com zero
                 if (!agrupado[email].itensComprados[item.nome]) {
                   agrupado[email].itensComprados[item.nome] = 0;
                 }
-                // Adiciona a quantidade comprada
                 agrupado[email].itensComprados[item.nome] += item.quantidade;
               });
             }
@@ -70,13 +74,39 @@ export default function FechamentoVR({ voltarParaLoja }) {
 
   const handleDispararWhatsApp = (cliente) => {
     const linkParaPagar = linksVR[cliente.email];
-    
-    // Chama a função do nosso arquivo separado
     const sucesso = enviarCobrancaWhatsApp(cliente, linkParaPagar);
 
-    // Se a aba abriu com sucesso, limpamos o campo daquele cliente
     if (sucesso) {
+      // 1. Marca que a cobrança foi enviada para este cliente
+      setCobrancasEnviadas(prev => ({ ...prev, [cliente.email]: true }));
+      // 2. Limpa o input do link
       setLinksVR(prev => ({ ...prev, [cliente.email]: '' }));
+    }
+  };
+
+  const concluirPagamento = async (cliente) => {
+    const confirmacao = window.confirm(`Tem certeza que ${cliente.nome} já pagou os R$ ${cliente.totalDevido.toFixed(2).replace('.', ',')}?`);
+    
+    if (!confirmacao) return;
+
+    setBaixandoPagamento(prev => ({ ...prev, [cliente.email]: true }));
+
+    try {
+      const promessasAtualizacao = cliente.vendaIds.map(idDaVenda => {
+        const vendaRef = doc(db, "vendas", idDaVenda);
+        return updateDoc(vendaRef, { pago: true });
+      });
+
+      await Promise.all(promessasAtualizacao);
+
+      setClientesDevedores(prev => prev.filter(c => c.email !== cliente.email));
+      
+      alert(`✅ Pagamento de ${cliente.nome} baixado com sucesso!`);
+    } catch (error) {
+      console.error("Erro ao concluir pagamento:", error);
+      alert("Erro ao tentar baixar o pagamento. Verifique o banco de dados.");
+    } finally {
+      setBaixandoPagamento(prev => ({ ...prev, [cliente.email]: false }));
     }
   };
 
@@ -104,48 +134,71 @@ export default function FechamentoVR({ voltarParaLoja }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {clientesDevedores.map((cliente) => (
-            <div key={cliente.email} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 flex flex-col md:flex-row items-center gap-4 hover:shadow-md transition-shadow">
-              
-              {/* Dados do Cliente */}
-              <div className="w-full md:w-1/3">
-                <h3 className="font-bold text-gray-900 text-lg truncate">{cliente.nome}</h3>
-                <p className="text-sm text-gray-500 truncate">{cliente.email}</p>
-                <p className="text-xs text-gray-400 mt-1 font-mono">
-                  {cliente.telefone ? `📱 ${cliente.telefone}` : '⚠️ Sem telefone'}
-                </p>
-              </div>
+          {clientesDevedores.map((cliente) => {
+            const jaFoiEnviado = cobrancasEnviadas[cliente.email];
 
-              {/* Dívida */}
-              <div className="w-full md:w-1/4 text-left md:text-center bg-amber-50 p-3 rounded-xl border border-amber-100">
-                <p className="text-xs font-bold text-amber-600 uppercase">Devendo</p>
-                <p className="text-xl font-extrabold text-amber-700">
-                  R$ {cliente.totalDevido.toFixed(2).replace('.', ',')}
-                </p>
-                <p className="text-[11px] font-bold text-amber-600/70">
-                  {cliente.qtdPedidos} {cliente.qtdPedidos === 1 ? 'pedido' : 'pedidos'}
-                </p>
-              </div>
+            return (
+              <div key={cliente.email} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 flex flex-col xl:flex-row items-center gap-4 hover:shadow-md transition-shadow">
+                
+                <div className="w-full xl:w-1/3">
+                  <h3 className="font-bold text-gray-900 text-lg truncate">{cliente.nome}</h3>
+                  <p className="text-sm text-gray-500 truncate">{cliente.email}</p>
+                  <p className="text-xs text-gray-400 mt-1 font-mono">
+                    {cliente.telefone ? `📱 ${cliente.telefone}` : '⚠️ Sem telefone'}
+                  </p>
+                </div>
 
-              {/* Input e Disparo */}
-              <div className="w-full md:w-auto flex-grow flex flex-col sm:flex-row gap-2">
-                <input 
-                  type="text" 
-                  placeholder="Cole o link do VR aqui..." 
-                  value={linksVR[cliente.email] || ''}
-                  onChange={(e) => handleLinkChange(cliente.email, e.target.value)}
-                  className="w-full sm:flex-grow bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                />
-                <button
-                  onClick={() => handleDispararWhatsApp(cliente)}
-                  className="shrink-0 bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-6 py-3 rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
-                >
-                  🟢 Cobrar
-                </button>
-              </div>
+                <div className="w-full xl:w-1/4 text-left xl:text-center bg-amber-50 p-3 rounded-xl border border-amber-100">
+                  <p className="text-xs font-bold text-amber-600 uppercase">Devendo</p>
+                  <p className="text-xl font-extrabold text-amber-700">
+                    R$ {cliente.totalDevido.toFixed(2).replace('.', ',')}
+                  </p>
+                  <p className="text-[11px] font-bold text-amber-600/70">
+                    {cliente.qtdPedidos} {cliente.qtdPedidos === 1 ? 'pedido' : 'pedidos'}
+                  </p>
+                </div>
 
-            </div>
-          ))}
+                <div className="w-full xl:w-auto flex-grow flex flex-col sm:flex-row gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="Cole o link do VR aqui..." 
+                    value={linksVR[cliente.email] || ''}
+                    onChange={(e) => handleLinkChange(cliente.email, e.target.value)}
+                    disabled={jaFoiEnviado}
+                    className="w-full sm:flex-grow bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:bg-gray-100 disabled:text-gray-400"
+                  />
+                  
+                  <div className="flex gap-2 w-full sm:w-auto shrink-0">
+                    {/* BOTÃO COBRAR / ENVIADO */}
+                    <button
+                      onClick={() => handleDispararWhatsApp(cliente)}
+                      disabled={jaFoiEnviado}
+                      className={`flex-1 sm:flex-none font-bold px-4 py-3 rounded-xl shadow-sm transition-all text-sm ${
+                        jaFoiEnviado 
+                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                          : 'bg-emerald-500 hover:bg-emerald-600 text-white active:scale-95'
+                      }`}
+                    >
+                      {jaFoiEnviado ? '✓ Enviado' : '🟢 Cobrar'}
+                    </button>
+                    
+                    {/* BOTÃO CONCLUIR (Só aparece se a cobrança já foi disparada) */}
+                    {jaFoiEnviado && (
+                      <button
+                        onClick={() => concluirPagamento(cliente)}
+                        disabled={baixandoPagamento[cliente.email]}
+                        className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold px-4 py-3 rounded-xl shadow-sm transition-all active:scale-95 text-sm flex items-center justify-center animate-fade-in-up"
+                      >
+                        {baixandoPagamento[cliente.email] ? '...' : '✅ Concluir'}
+                      </button>
+                    )}
+                  </div>
+
+                </div>
+
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

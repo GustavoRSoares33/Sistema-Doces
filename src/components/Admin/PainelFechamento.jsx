@@ -10,12 +10,15 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
 
   const [termoBusca, setTermoBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('todos');
+  
+  // NOVO: Estado para filtrar pelo método de pagamento
+  const [filtroMetodo, setFiltroMetodo] = useState('todos');
 
   // Estados para controlar o Modal de Recusa
   const [vendaRecusar, setVendaRecusar] = useState(null);
   const [processandoAcao, setProcessandoAcao] = useState(false);
 
-  // Estado para controlar o mês do PDF (Formato padrão do HTML5: YYYY-MM)
+  // Estado para controlar o mês do PDF
   const [mesRelatorio, setMesRelatorio] = useState(() => {
     const hoje = new Date();
     return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
@@ -91,6 +94,7 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
     }
   };
 
+  // ATUALIZADO: Lógica de filtros agora inclui o método de pagamento
   const vendasFiltradas = vendas.filter((venda) => {
     const passaStatus =
       filtroStatus === 'todos' ||
@@ -98,12 +102,17 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
       (filtroStatus === 'analise' && !venda.pago && venda.aguardandoConfirmacao) ||
       (filtroStatus === 'pagos' && venda.pago);
 
+    const passaMetodo = 
+      filtroMetodo === 'todos' ||
+      (filtroMetodo === 'pix' && venda.metodoPagamento === 'pix') ||
+      (filtroMetodo === 'vr' && venda.metodoPagamento === 'vr');
+
     const termo = termoBusca.toLowerCase();
     const passaBusca =
       venda.cliente.toLowerCase().includes(termo) ||
       venda.email.toLowerCase().includes(termo);
 
-    return passaStatus && passaBusca;
+    return passaStatus && passaBusca && passaMetodo;
   });
 
   return (
@@ -189,9 +198,9 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
 
       {/* ================= BARRA DE BUSCA E FILTROS ================= */}
       {!carregando && vendas.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col lg:flex-row gap-4 justify-between items-center w-full">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col xl:flex-row gap-4 justify-between items-center w-full">
 
-          <div className="relative w-full lg:w-1/3">
+          <div className="relative w-full xl:w-1/3">
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
               🔍
             </span>
@@ -204,31 +213,56 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
             />
           </div>
 
-          <div className="flex bg-slate-100 p-1 rounded-lg w-full lg:w-auto overflow-x-auto">
-            <button
-              onClick={() => setFiltroStatus('todos')}
-              className={`whitespace-nowrap flex-1 lg:flex-none px-4 py-1.5 text-sm font-bold rounded-md transition-all ${filtroStatus === 'todos' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Todos
-            </button>
-            <button
-              onClick={() => setFiltroStatus('pendentes')}
-              className={`whitespace-nowrap flex-1 lg:flex-none px-4 py-1.5 text-sm font-bold rounded-md transition-all ${filtroStatus === 'pendentes' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Pendentes
-            </button>
-            <button
-              onClick={() => setFiltroStatus('analise')}
-              className={`whitespace-nowrap flex-1 lg:flex-none px-4 py-1.5 text-sm font-bold rounded-md transition-all ${filtroStatus === 'analise' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Em Análise
-            </button>
-            <button
-              onClick={() => setFiltroStatus('pagos')}
-              className={`whitespace-nowrap flex-1 lg:flex-none px-4 py-1.5 text-sm font-bold rounded-md transition-all ${filtroStatus === 'pagos' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Recebidos
-            </button>
+          <div className="flex flex-col lg:flex-row gap-2 w-full xl:w-auto">
+            {/* FILTRO DE MÉTODO (NOVO) */}
+            <div className="flex bg-slate-100 p-1 rounded-lg w-full lg:w-auto overflow-x-auto">
+              <button
+                onClick={() => setFiltroMetodo('todos')}
+                className={`whitespace-nowrap flex-1 lg:flex-none px-4 py-1.5 text-sm font-bold rounded-md transition-all ${filtroMetodo === 'todos' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Todos
+              </button>
+              <button
+                onClick={() => setFiltroMetodo('pix')}
+                className={`whitespace-nowrap flex-1 lg:flex-none px-4 py-1.5 text-sm font-bold rounded-md transition-all ${filtroMetodo === 'pix' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Pix
+              </button>
+              <button
+                onClick={() => setFiltroMetodo('vr')}
+                className={`whitespace-nowrap flex-1 lg:flex-none px-4 py-1.5 text-sm font-bold rounded-md transition-all ${filtroMetodo === 'vr' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                VR
+              </button>
+            </div>
+
+            {/* FILTRO DE STATUS */}
+            <div className="flex bg-slate-100 p-1 rounded-lg w-full lg:w-auto overflow-x-auto">
+              <button
+                onClick={() => setFiltroStatus('todos')}
+                className={`whitespace-nowrap flex-1 lg:flex-none px-4 py-1.5 text-sm font-bold rounded-md transition-all ${filtroStatus === 'todos' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Todos
+              </button>
+              <button
+                onClick={() => setFiltroStatus('pendentes')}
+                className={`whitespace-nowrap flex-1 lg:flex-none px-4 py-1.5 text-sm font-bold rounded-md transition-all ${filtroStatus === 'pendentes' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Pendentes
+              </button>
+              <button
+                onClick={() => setFiltroStatus('analise')}
+                className={`whitespace-nowrap flex-1 lg:flex-none px-4 py-1.5 text-sm font-bold rounded-md transition-all ${filtroStatus === 'analise' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Em Análise
+              </button>
+              <button
+                onClick={() => setFiltroStatus('pagos')}
+                className={`whitespace-nowrap flex-1 lg:flex-none px-4 py-1.5 text-sm font-bold rounded-md transition-all ${filtroStatus === 'pagos' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Recebidos
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -256,7 +290,18 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
                     <div className="pr-4 min-w-0">
                       <h3 className="font-bold text-lg text-gray-900 leading-tight truncate">{venda.cliente}</h3>
                       <p className="text-xs text-gray-500 truncate">{venda.email}</p>
-                      <p className="text-xs text-gray-400 mt-1">{new Date(venda.data).toLocaleString('pt-BR')}</p>
+                      
+                      {/* NOVO: Data + Etiqueta de Pagamento */}
+                      <div className="flex flex-col gap-1.5 mt-2">
+                        <p className="text-xs text-gray-400">{new Date(venda.data).toLocaleString('pt-BR')}</p>
+                        {venda.metodoPagamento === 'pix' ? (
+                          <span className="w-fit text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-100">💠 Pix</span>
+                        ) : venda.metodoPagamento === 'vr' ? (
+                          <span className="w-fit text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">💳 VR</span>
+                        ) : (
+                          <span className="w-fit text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 border border-gray-200">Não informado</span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex flex-col items-end gap-1 text-right shrink-0">
@@ -299,7 +344,7 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
                           onClick={() => marcarComoPago(venda.id)}
                           className="w-2/3 font-bold py-3 rounded-xl transition-all duration-300 active:scale-95 bg-blue-600 text-white shadow-md hover:bg-blue-700 animate-pulse shadow-blue-500/30 text-sm"
                         >
-                          Aprovar Pix
+                          Aprovar Pagamento
                         </button>
                       </div>
                     ) : (

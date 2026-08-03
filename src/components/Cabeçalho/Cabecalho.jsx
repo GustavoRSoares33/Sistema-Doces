@@ -7,11 +7,15 @@ const Cabecalho = ({ dadosPerfil, usuario, totalPendente, setTelaAtual, handleSa
                     <span className="text-purple-100 font-medium text-sm block">
                         Olá, <strong className="text-white font-bold text-lg">{dadosPerfil?.nome || usuario.email}</strong>
                     </span>
-                    {totalPendente > 0.0 && (<div className="bg-amber-50 border border-amber-200 rounded-2xl p-2 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
-                        <div>
-                            <p className="text-amber-800 font-bold text-sm">Você possui pagamentos pendentes: R$ {totalPendente.toFixed(2).replace('.', ',')}</p>
+                    {totalPendente > 0.0 && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-2 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
+                            <div>
+                                <p className="text-amber-800 font-bold text-sm">
+                                    Você possui pagamentos pendentes: R$ {totalPendente.toFixed(2).replace('.', ',')}
+                                </p>
+                            </div>
                         </div>
-                    </div>)}
+                    )}
                 </div>
             </div>
 

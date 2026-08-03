@@ -7,12 +7,15 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
   const [compras, setCompras] = useState([]);
   const [carregando, setCarregando] = useState(true);
 
+  // NOVO: Estado para controlar o filtro selecionado
+  const [filtroMetodo, setFiltroMetodo] = useState('todos');
+
   // Controle do Modal de Pix
   const [vendaPix, setVendaPix] = useState(null);
   const [processandoPix, setProcessandoPix] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
-  // NOVO: Controle da tela de sucesso após confirmar o Pix
+  // Controle da tela de sucesso após confirmar o Pix
   const [sucessoPix, setSucessoPix] = useState(false);
 
   const buscarHistorico = async () => {
@@ -47,7 +50,6 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
     setTimeout(() => setCopiado(false), 2000);
   };
 
-  // ATUALIZADO: Agora usa animação de sucesso em vez de alert()
   const confirmarEnvioPix = async () => {
     setProcessandoPix(true);
     try {
@@ -63,10 +65,8 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
         atualizarTotalPendente();
       }
 
-      // Ativa a tela de sucesso
       setSucessoPix(true);
 
-      // Espera 2.5 segundos e limpa tudo, fechando o modal suavemente
       setTimeout(() => {
         setVendaPix(null);
         setSucessoPix(false);
@@ -84,15 +84,21 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
     .filter((c) => !c.pago)
     .reduce((acc, c) => acc + Number(c.total), 0);
 
+  // NOVO: Lógica que filtra as compras exibidas com base no botão clicado
+  const comprasFiltradas = compras.filter((compra) => {
+    if (filtroMetodo === 'todos') return true;
+    if (filtroMetodo === 'pix') return compra.metodoPagamento === 'pix';
+    if (filtroMetodo === 'vr') return compra.metodoPagamento === 'vr';
+    return true;
+  });
+
   return (
-    <div className="w-full flex flex-col gap-6 relative">
+    <div className="w-full flex flex-col gap-6 relative animate-fade-in-up">
 
       {/* ---------------- MODAL DO PIX ---------------- */}
       {vendaPix && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-
           {sucessoPix ? (
-            /* NOVA TELA DE SUCESSO (Substitui o Alert) */
             <div className="bg-white w-full max-w-sm rounded-3xl p-8 flex flex-col items-center justify-center shadow-2xl animate-fade-in-up">
               <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-6 shadow-inner">
                 <span className="text-blue-500 text-4xl animate-bounce">✓</span>
@@ -101,9 +107,7 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
               <p className="text-gray-500 text-center font-medium">A loja vai conferir o seu pagamento e liberar o pedido.</p>
             </div>
           ) : (
-            /* TELA NORMAL DO PIX */
             <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl flex flex-col animate-fade-in-up overflow-hidden">
-
               <div className="bg-emerald-500 w-full pt-6 pb-8 px-4 flex flex-col items-center relative">
                 <button onClick={() => setVendaPix(null)} className="absolute top-4 right-4 bg-black/10 text-white hover:bg-black/20 w-8 h-8 rounded-full flex items-center justify-center transition-colors">
                   ✕
@@ -147,20 +151,18 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
               </div>
             </div>
           )}
-
         </div>
       )}
       {/* ---------------- FIM DO MODAL ---------------- */}
 
+      {/* CABEÇALHO */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex justify-between items-center w-full">
         <h2 className="text-2xl font-extrabold text-gray-800">Meus Pedidos</h2>
         <button
           onClick={voltarParaLoja}
           className="group flex items-center gap-2 text-sm text-gray-600 font-bold bg-white hover:bg-gray-50 px-4 py-2.5 rounded-xl border border-gray-200 transition-all active:scale-95 shadow-sm"
         >
-          <span className="transition-transform duration-300 group-hover:-translate-x-1">
-            ←
-          </span>
+          <span className="transition-transform duration-300 group-hover:-translate-x-1">←</span>
           Voltar à Loja
         </button>
       </div>
@@ -174,28 +176,71 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
         </div>
       )}
 
+      {/* NOVO: BARRA DE FILTROS */}
+      {!carregando && compras.length > 0 && (
+        <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-fit overflow-x-auto border border-slate-200">
+          <button
+            onClick={() => setFiltroMetodo('todos')}
+            className={`whitespace-nowrap flex-1 sm:flex-none px-6 py-2 text-sm font-bold rounded-lg transition-all ${filtroMetodo === 'todos' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Todos
+          </button>
+          <button
+            onClick={() => setFiltroMetodo('pix')}
+            className={`whitespace-nowrap flex-1 sm:flex-none px-6 py-2 text-sm font-bold rounded-lg transition-all ${filtroMetodo === 'pix' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Pix
+          </button>
+          <button
+            onClick={() => setFiltroMetodo('vr')}
+            className={`whitespace-nowrap flex-1 sm:flex-none px-6 py-2 text-sm font-bold rounded-lg transition-all ${filtroMetodo === 'vr' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            VR
+          </button>
+        </div>
+      )}
+
+      {/* LISTA DE COMPRAS */}
       {carregando ? (
         <p className="text-center text-gray-500 mt-10 animate-pulse font-bold">Buscando seus pedidos...</p>
       ) : compras.length === 0 ? (
         <div className="bg-white p-10 rounded-3xl text-center shadow-sm border border-gray-100">
           <p className="text-gray-500 text-lg">Você ainda não fez nenhuma compra.</p>
         </div>
+      ) : comprasFiltradas.length === 0 ? (
+        <div className="bg-white p-10 rounded-3xl text-center shadow-sm border border-gray-100">
+          <p className="text-gray-500 text-lg">Nenhum pedido encontrado para este filtro.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-          {compras.map((compra) => (
+          {comprasFiltradas.map((compra) => (
             <div key={compra.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between">
 
               <div>
-                <div className="flex justify-between items-center mb-3 border-b border-gray-100 pb-3">
-                  <span className="text-xs text-gray-400 font-medium">{new Date(compra.data).toLocaleString('pt-BR')}</span>
+                <div className="flex justify-between items-start mb-4 border-b border-gray-100 pb-3">
+                  
+                  {/* NOVO: Data e Etiqueta do Método de Pagamento */}
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs text-gray-400 font-medium">{new Date(compra.data).toLocaleString('pt-BR')}</span>
+                    {compra.metodoPagamento === 'pix' ? (
+                      <span className="w-fit text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-100">💠 Pix</span>
+                    ) : compra.metodoPagamento === 'vr' ? (
+                      <span className="w-fit text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">💳 VR</span>
+                    ) : (
+                      <span className="w-fit text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 border border-gray-200">Não informado</span>
+                    )}
+                  </div>
 
-                  {compra.pago ? (
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-green-100 text-green-700">Pago</span>
-                  ) : compra.aguardandoConfirmacao ? (
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-blue-100 text-blue-700">Em Análise</span>
-                  ) : (
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-amber-100 text-amber-700">Pendente</span>
-                  )}
+                  {/* Status da Compra */}
+                  <div>
+                    {compra.pago ? (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-green-100 text-green-700">Pago</span>
+                    ) : compra.aguardandoConfirmacao ? (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-blue-100 text-blue-700">Em Análise</span>
+                    ) : (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-amber-100 text-amber-700">Pendente</span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mb-4 bg-slate-50 p-3 rounded-xl border border-gray-100">
@@ -215,6 +260,7 @@ export default function HistoricoCompras({ voltarParaLoja, emailUsuario, atualiz
                   <span className="text-xl font-extrabold text-gray-800">R$ {Number(compra.total).toFixed(2).replace('.', ',')}</span>
                 </div>
 
+                {/* Se a compra estiver pendente e não for aguardando aprovação, o botão de pagar aparece */}
                 {!compra.pago && !compra.aguardandoConfirmacao && (
                   <button
                     onClick={() => setVendaPix(compra)}

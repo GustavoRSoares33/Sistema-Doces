@@ -1,5 +1,5 @@
 import DoceCard from "../DoceCard";
-import CarrinhoModal from "../CarrinhoModal";
+import CarrinhoModal from "../Carrinho/CarrinhoModal";
 
 const TelaLoja = ({
     isAdmin,
