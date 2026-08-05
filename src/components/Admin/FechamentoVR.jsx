@@ -11,8 +11,16 @@ export default function FechamentoVR({ voltarParaLoja }) {
   const [linksVR, setLinksVR] = useState({});
   const [baixandoPagamento, setBaixandoPagamento] = useState({});
   
-  // NOVO: Estado para rastrear quais clientes já tiveram a cobrança enviada
-  const [cobrancasEnviadas, setCobrancasEnviadas] = useState({});
+  // ATUALIZADO: Agora busca a memória salva no navegador (localStorage) para não perder o status
+  const [cobrancasEnviadas, setCobrancasEnviadas] = useState(() => {
+    const salvas = localStorage.getItem('cobrancasEnviadas_VR');
+    return salvas ? JSON.parse(salvas) : {};
+  });
+
+  // ATUALIZADO: Sempre que 'cobrancasEnviadas' mudar, salva no navegador
+  useEffect(() => {
+    localStorage.setItem('cobrancasEnviadas_VR', JSON.stringify(cobrancasEnviadas));
+  }, [cobrancasEnviadas]);
 
   useEffect(() => {
     const buscarPendencias = async () => {
@@ -84,6 +92,15 @@ export default function FechamentoVR({ voltarParaLoja }) {
     }
   };
 
+  // NOVO: Função para cancelar o envio da cobrança
+  const cancelarEnvio = (email) => {
+    setCobrancasEnviadas(prev => {
+      const novoEstado = { ...prev };
+      delete novoEstado[email];
+      return novoEstado;
+    });
+  };
+
   const concluirPagamento = async (cliente) => {
     const confirmacao = window.confirm(`Tem certeza que ${cliente.nome} já pagou os R$ ${cliente.totalDevido.toFixed(2).replace('.', ',')}?`);
     
@@ -99,6 +116,9 @@ export default function FechamentoVR({ voltarParaLoja }) {
 
       await Promise.all(promessasAtualizacao);
 
+      // Limpa a cobrança da memória já que foi paga
+      cancelarEnvio(cliente.email);
+      
       setClientesDevedores(prev => prev.filter(c => c.email !== cliente.email));
       
       alert(`✅ Pagamento de ${cliente.nome} baixado com sucesso!`);
@@ -165,7 +185,7 @@ export default function FechamentoVR({ voltarParaLoja }) {
                     value={linksVR[cliente.email] || ''}
                     onChange={(e) => handleLinkChange(cliente.email, e.target.value)}
                     disabled={jaFoiEnviado}
-                    className="w-full sm:flex-grow bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:bg-gray-100 disabled:text-gray-400"
+                    className="w-full sm:flex-grow bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:bg-gray-100 disabled:text-gray-400 transition-colors"
                   />
                   
                   <div className="flex gap-2 w-full sm:w-auto shrink-0">
@@ -182,15 +202,25 @@ export default function FechamentoVR({ voltarParaLoja }) {
                       {jaFoiEnviado ? '✓ Enviado' : '🟢 Cobrar'}
                     </button>
                     
-                    {/* BOTÃO CONCLUIR (Só aparece se a cobrança já foi disparada) */}
+                    {/* BOTÕES EXTRAS (Só aparecem se a cobrança já foi disparada) */}
                     {jaFoiEnviado && (
-                      <button
-                        onClick={() => concluirPagamento(cliente)}
-                        disabled={baixandoPagamento[cliente.email]}
-                        className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold px-4 py-3 rounded-xl shadow-sm transition-all active:scale-95 text-sm flex items-center justify-center animate-fade-in-up"
-                      >
-                        {baixandoPagamento[cliente.email] ? '...' : '✅ Concluir'}
-                      </button>
+                      <>
+                        <button
+                          onClick={() => concluirPagamento(cliente)}
+                          disabled={baixandoPagamento[cliente.email]}
+                          className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold px-4 py-3 rounded-xl shadow-sm transition-all active:scale-95 text-sm flex items-center justify-center animate-fade-in-up"
+                        >
+                          {baixandoPagamento[cliente.email] ? '...' : '✅ Concluir'}
+                        </button>
+
+                        <button
+                          onClick={() => cancelarEnvio(cliente.email)}
+                          title="Cancelar e enviar novamente"
+                          className="flex-none bg-red-100 hover:bg-red-200 text-red-600 font-bold px-4 py-3 rounded-xl shadow-sm transition-all active:scale-95 flex items-center justify-center animate-fade-in-up"
+                        >
+                          ❌
+                        </button>
+                      </>
                     )}
                   </div>
 

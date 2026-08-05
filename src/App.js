@@ -1,30 +1,38 @@
-import { useState, useEffect } from 'react';
-import './index.css';
+import { useState, useEffect } from "react";
+import "./index.css";
 
 // Importações do Firebase Auth e Firestore
-import { collection, getDocs, doc, getDoc, deleteDoc, query, where } from 'firebase/firestore';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { db, auth } from './firebase';
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  deleteDoc,
+  query,
+  where,
+} from "firebase/firestore";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { db, auth } from "./firebase";
 
 // Componentes
-import PainelFechamento from './components/Admin/PainelFechamento';
-import GestaoProdutos from './components/Admin/GestaoProdutos';
-import Login from './components/Login';
-import HistoricoCompras from './components/HistoricoCompras';
-import Cabebecalho from './components/Cabeçalho/Cabecalho'
-import TelaLoja from './components/TelaLoja/TelaLoja'
-import MenuAdmin from './components/Admin/MenuAdmin';
-import FechamentoVR from './components/Admin/FechamentoVR'
+import PainelFechamento from "./components/Admin/PainelFechamento";
+import GestaoProdutos from "./components/Admin/GestaoProdutos";
+import Login from "./components/Login";
+import HistoricoCompras from "./components/HistoricoCompras";
+import Cabebecalho from "./components/Cabeçalho/Cabecalho";
+import TelaLoja from "./components/TelaLoja/TelaLoja";
+import MenuAdmin from "./components/Admin/MenuAdmin";
+import FechamentoVR from "./components/Admin/FechamentoVR";
 
 // === ATENÇÃO: COLOQUE O SEU E-MAIL AQUI PARA SER O ADMIN ===
-const EMAIL_ADMIN = "gugars04@gmail.com";
+const EMAILS_ADMIN = ["gugars04@gmail.com", "vitorrodriguessoares@outlook.com"];
 
 export default function App() {
   const [usuario, setUsuario] = useState(null);
   const [dadosPerfil, setDadosPerfil] = useState(null);
   const [carregandoAuth, setCarregandoAuth] = useState(true);
 
-  const [telaAtual, setTelaAtual] = useState('loja');
+  const [telaAtual, setTelaAtual] = useState("loja");
   const [carrinho, setCarrinho] = useState([]);
   const [carrinhoAberto, setCarrinhoAberto] = useState(false);
   const [doces, setDoces] = useState([]);
@@ -64,7 +72,7 @@ export default function App() {
         const querySnapshot = await getDocs(collection(db, "produtos"));
         const listaProdutos = querySnapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         }));
         setDoces(listaProdutos);
       } catch (error) {
@@ -80,12 +88,14 @@ export default function App() {
   // Função que lida com o clique no botão Editar
   const handleEditarProduto = (doce) => {
     setProdutoEditando(doce); // Guarda o doce inteiro no estado
-    setTelaAtual('produtos'); // Muda para a tela de gestão
+    setTelaAtual("produtos"); // Muda para a tela de gestão
   };
 
   // Função que lida com o clique no botão Excluir
   const handleExcluirProduto = async (idDoce) => {
-    const confirmacao = window.confirm("Tem certeza que deseja excluir este doce?");
+    const confirmacao = window.confirm(
+      "Tem certeza que deseja excluir este doce?",
+    );
     if (confirmacao) {
       try {
         await deleteDoc(doc(db, "produtos", idDoce));
@@ -102,7 +112,11 @@ export default function App() {
     setCarrinho((atual) => {
       const existe = atual.find((item) => item.id === doce.id);
       if (existe) {
-        return atual.map((item) => item.id === doce.id ? { ...item, quantidade: item.quantidade + 1 } : item);
+        return atual.map((item) =>
+          item.id === doce.id
+            ? { ...item, quantidade: item.quantidade + 1 }
+            : item,
+        );
       } else {
         return [...atual, { ...doce, quantidade: 1 }];
       }
@@ -112,8 +126,11 @@ export default function App() {
   const removerDoCarrinho = (id) => {
     setCarrinho((atual) => {
       const existe = atual.find((item) => item.id === id);
-      if (existe.quantidade === 1) return atual.filter((item) => item.id !== id);
-      return atual.map((item) => item.id === id ? { ...item, quantidade: item.quantidade - 1 } : item);
+      if (existe.quantidade === 1)
+        return atual.filter((item) => item.id !== id);
+      return atual.map((item) =>
+        item.id === id ? { ...item, quantidade: item.quantidade - 1 } : item,
+      );
     });
   };
 
@@ -128,15 +145,15 @@ export default function App() {
     // Busca SOMENTE as compras do e-mail da conta logada
     const q = query(
       collection(db, "vendas"),
-      where("email", "==", usuario.email)
+      where("email", "==", usuario.email),
     );
 
     const snapshot = await getDocs(q);
 
     const total = snapshot.docs
-      .map(doc => doc.data())
+      .map((doc) => doc.data())
       // Soma todas as compras da conta que ainda não foram pagas
-      .filter(c => !c.pago)
+      .filter((c) => !c.pago)
       .reduce((acc, c) => acc + Number(c.total), 0);
 
     setTotalPendente(total);
@@ -153,7 +170,11 @@ export default function App() {
 
   // 1. Se o Firebase ainda está checando o login, mostra tela de carregamento
   if (carregandoAuth) {
-    return <div className="min-h-screen flex items-center justify-center bg-slate-50 font-semibold text-gray-500">Carregando...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 font-semibold text-gray-500">
+        Carregando...
+      </div>
+    );
   }
 
   // 2. SE NÃO ESTIVER LOGADO, MOSTRA O COMPONENTE DE LOGIN E TRAVA O RESTO
@@ -162,19 +183,32 @@ export default function App() {
   }
 
   // 3. SE ESTIVER LOGADO, MAS NÃO CLICOU NO E-MAIL DE CONFIRMAÇÃO
-  if (usuario && !usuario.emailVerified && usuario.email !== EMAIL_ADMIN) {
+  if (
+    usuario &&
+    !usuario.emailVerified &&
+    !EMAILS_ADMIN.includes(usuario.email)
+  ) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 w-full max-w-sm text-center">
-          <span className="text-4xl block mb-4">✉️</span>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Verifique seu E-mail</h2>
-          <p className="text-gray-600 mb-6 text-sm">
-            Nós enviamos um link de ativação para <strong>{usuario.email}</strong>.
-            Você precisa clicar nele antes de acessar a loja.
+        <div className="bg-white p-8 rounded-2xl shadow-xl flex flex-col items-center max-w-sm text-center">
+          <div className="text-4xl mb-4">✉️</div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">
+            Verifique seu E-mail
+          </h2>
+          <p className="text-slate-600 mb-4">
+            Nós enviamos um link de ativação para{" "}
+            <strong className="text-slate-800">{usuario.email}</strong>. Você
+            precisa clicar nele antes de acessar a loja.
           </p>
+
+          <p className="text-sm font-bold text-amber-600 bg-amber-50 p-3 rounded-xl mb-6 w-full border border-amber-100">
+            ⚠️ Dica: Não achou? Verifique também a sua pasta de Spam ou Lixo
+            Eletrônico!
+          </p>
+
           <button
             onClick={handleSair}
-            className="w-full bg-gray-100 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors"
+            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 px-4 rounded-xl transition-colors"
           >
             Sair e tentar novamente
           </button>
@@ -184,19 +218,21 @@ export default function App() {
   }
 
   // Se chegou aqui, ESTÁ LOGADO e VALIDADO! Verificamos se é o Admin:
-  const isAdmin = usuario.email === EMAIL_ADMIN;
-  const valorTotal = carrinho.reduce((total, item) => total + (item.preco * item.quantidade), 0);
-  const totalItens = carrinho.reduce((total, item) => total + item.quantidade, 0);
+  const isAdmin = EMAILS_ADMIN.includes(usuario.email);
+  const valorTotal = carrinho.reduce(
+    (total, item) => total + item.preco * item.quantidade,
+    0,
+  );
+  const totalItens = carrinho.reduce(
+    (total, item) => total + item.quantidade,
+    0,
+  );
 
   if (carrinho.length === 0 && carrinhoAberto) setCarrinhoAberto(false);
 
   return (
-    // 1. FUNDO DA TELA: Alterado de bg-slate-50 para bg-slate-100 para dar contraste aos cartões brancos
     <div className="min-h-screen bg-slate-200 p-4 pb-24 flex justify-center relative">
-
-      {/* ---------------- CONTAINER PRINCIPAL ÚNICO ---------------- */}
       <div className="w-full max-w-4xl flex flex-col gap-6 mt-2">
-
         <Cabebecalho
           dadosPerfil={dadosPerfil}
           usuario={usuario}
@@ -205,9 +241,27 @@ export default function App() {
           handleSair={handleSair}
           isAdmin={isAdmin}
         />
+        {/* ---------------- RODAPÉ DE AJUDA E SUPORTE ---------------- */}
+        <div className="mt-8 mb-6 text-center text-sm text-slate-500 animate-fade-in-up w-full">
+          <p>Precisa de ajuda com o sistema ou algum pedido?</p>
+          <p className="mt-1">
+            Chame o{" "}
+            <strong className="text-slate-700">Vitor Rodrigues Soares</strong>{" "}
+            no{" "}
+            <a
+              href="https://wa.me/5513981466112" // TODO: Coloque o número real com o DDD aqui!
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-purple-600 font-bold hover:underline transition-colors"
+            >
+              WhatsApp
+            </a>{" "}
+            ou no <span className="text-purple-600 font-bold">Teams</span>.
+          </p>
+        </div>
 
         {/* ---------------- TELA 1: A LOJA ---------------- */}
-        {telaAtual === 'loja' && (
+        {telaAtual === "loja" && (
           <TelaLoja
             isAdmin={isAdmin}
             setProdutoEditando={setProdutoEditando}
@@ -231,30 +285,30 @@ export default function App() {
         )}
 
         {/* ---------------- TELA ADMIN HUB (NOVO) ---------------- */}
-        {telaAtual === 'admin' && isAdmin && (
+        {telaAtual === "admin" && isAdmin && (
           <MenuAdmin
             setTelaAtual={setTelaAtual}
             setProdutoEditando={setProdutoEditando}
-            voltarParaLoja={() => setTelaAtual('loja')}
+            voltarParaLoja={() => setTelaAtual("loja")}
           />
         )}
 
         {/* ---------------- TELA 2: O PAINEL ---------------- */}
-        {telaAtual === 'painel' && isAdmin && (
+        {telaAtual === "painel" && isAdmin && (
           <div className="w-full mt-4">
             <PainelFechamento
-              voltarParaLoja={() => setTelaAtual('admin')} // <- Voltar vai para o Menu Admin agora
+              voltarParaLoja={() => setTelaAtual("admin")}
               atualizarTotalPendente={buscarTotalPendente}
             />
           </div>
         )}
 
         {/* ---------------- TELA 3: GESTÃO DE PRODUTOS ---------------- */}
-        {telaAtual === 'produtos' && isAdmin && (
+        {telaAtual === "produtos" && isAdmin && (
           <div className="w-full mt-4">
             <GestaoProdutos
               voltarParaLoja={() => {
-                setTelaAtual('admin'); // <- Voltar vai para o Menu Admin agora
+                setTelaAtual("admin");
                 setProdutoEditando(null);
               }}
               produtoEditando={produtoEditando}
@@ -263,10 +317,10 @@ export default function App() {
         )}
 
         {/* ---------------- TELA 4: HISTÓRICO DO CLIENTE ---------------- */}
-        {telaAtual === 'historico' && (
+        {telaAtual === "historico" && (
           <div className="w-full mt-4">
             <HistoricoCompras
-              voltarParaLoja={() => setTelaAtual('loja')}
+              voltarParaLoja={() => setTelaAtual("loja")}
               emailUsuario={usuario.email}
               atualizarTotalPendente={buscarTotalPendente}
             />
@@ -274,14 +328,11 @@ export default function App() {
         )}
 
         {/* ---------------- TELA 5: FECHAMENTO VR ---------------- */}
-        {telaAtual === 'fechamentoVR' && isAdmin && (
+        {telaAtual === "fechamentoVR" && isAdmin && (
           <div className="w-full mt-4">
-            <FechamentoVR
-              voltarParaLoja={() => setTelaAtual('admin')} // <- Voltar vai para o Menu Admin agora
-            />
+            <FechamentoVR voltarParaLoja={() => setTelaAtual("admin")} />
           </div>
         )}
-
       </div>
     </div>
   );

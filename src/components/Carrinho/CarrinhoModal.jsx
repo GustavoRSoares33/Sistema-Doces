@@ -1,7 +1,6 @@
 // src/components/Carrinho/CarrinhoModal.jsx
 import { useState } from "react";
 import EtapaResumo from "./EtapaResumo";
-import EtapaPagamento from "./EtapaPagamento";
 import EtapaPix from "./EtapaPix";
 import EtapaVR from "./EtapaVR";
 import EtapaSucesso from "./EtapaSucesso";
@@ -28,15 +27,6 @@ export default function CarrinhoModal({
           adicionarItem={adicionarItem}
           removerItem={removerItem}
           fecharCarrinho={fecharCarrinho}
-          avancarPara={() => setEtapa("pagamento")}
-        />
-      )}
-
-      {etapa === "pagamento" && (
-        <EtapaPagamento
-          valorTotal={valorTotalNumerico}
-          fecharCarrinho={fecharCarrinho}
-          voltar={() => setEtapa("carrinho")}
           avancarParaPix={() => setEtapa("pix")}
           avancarParaVR={() => setEtapa("vr")}
         />

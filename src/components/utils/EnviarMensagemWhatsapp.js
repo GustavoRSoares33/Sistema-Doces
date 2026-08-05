@@ -19,7 +19,7 @@ export const enviarCobrancaWhatsApp = (cliente, linkVR) => {
   }
 
   // 2. Montar a mensagem no formato exato solicitado
-  const textoMensagem = `${cliente.nome}\n${listaItens}Total: R$ ${cliente.totalDevido.toFixed(2).replace('.', ',')}\n${linkVR}`;
+  const textoMensagem = `Olá, *${cliente.nome}*! Tudo bem? \n\nPassando para enviar o resumo e o link de pagamento VR referente às suas compras.\n\n*Seus doces:*\n${listaItens}\n*Valor Total:* R$ ${cliente.totalDevido.toFixed(2).replace('.', ',')}\n\n *Link para pagamento:*\n${linkVR}\n\nMuito obrigado pela preferência!`;
 
   // 3. Codificar para URL
   const textoCodificado = encodeURIComponent(textoMensagem);

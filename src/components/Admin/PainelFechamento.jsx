@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 
 import {gerarRelatorioPDF} from './GerarPdf'
@@ -10,8 +10,6 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
 
   const [termoBusca, setTermoBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('todos');
-  
-  // NOVO: Estado para filtrar pelo método de pagamento
   const [filtroMetodo, setFiltroMetodo] = useState('todos');
 
   // Estados para controlar o Modal de Recusa
@@ -94,7 +92,29 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
     }
   };
 
-  // ATUALIZADO: Lógica de filtros agora inclui o método de pagamento
+  // NOVO: Função para excluir/cancelar o pedido definitivamente
+  const excluirPedido = async (idVenda, nomeCliente) => {
+    const confirmacao = window.confirm(
+      `Tem certeza que deseja EXCLUIR o pedido de ${nomeCliente}? Essa ação não poderá ser desfeita.`
+    );
+
+    if (!confirmacao) return;
+
+    try {
+      await deleteDoc(doc(db, "vendas", idVenda));
+
+      // Remove da tela instantaneamente
+      setVendas((vendasAtuais) => vendasAtuais.filter((venda) => venda.id !== idVenda));
+
+      // Atualiza o total pendente caso fosse uma compra em aberto
+      if (atualizarTotalPendente) atualizarTotalPendente();
+
+    } catch (error) {
+      console.error("Erro ao excluir pedido:", error);
+      alert("Erro ao tentar excluir o pedido.");
+    }
+  };
+
   const vendasFiltradas = vendas.filter((venda) => {
     const passaStatus =
       filtroStatus === 'todos' ||
@@ -169,7 +189,6 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
 
       {/* ================= BARRA DE RELATÓRIOS ================= */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 flex flex-col sm:flex-row justify-between items-center gap-4 w-full">
-        
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center text-xl shrink-0">
             📅
@@ -193,13 +212,11 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
         >
           📄 Baixar Relatório (PDF)
         </button>
-
       </div>
 
       {/* ================= BARRA DE BUSCA E FILTROS ================= */}
       {!carregando && vendas.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col xl:flex-row gap-4 justify-between items-center w-full">
-
           <div className="relative w-full xl:w-1/3">
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
               🔍
@@ -214,7 +231,6 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
           </div>
 
           <div className="flex flex-col lg:flex-row gap-2 w-full xl:w-auto">
-            {/* FILTRO DE MÉTODO (NOVO) */}
             <div className="flex bg-slate-100 p-1 rounded-lg w-full lg:w-auto overflow-x-auto">
               <button
                 onClick={() => setFiltroMetodo('todos')}
@@ -236,7 +252,6 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
               </button>
             </div>
 
-            {/* FILTRO DE STATUS */}
             <div className="flex bg-slate-100 p-1 rounded-lg w-full lg:w-auto overflow-x-auto">
               <button
                 onClick={() => setFiltroStatus('todos')}
@@ -286,80 +301,94 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
               {vendasFiltradas.map((venda) => (
                 <div key={venda.id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between h-full">
 
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="pr-4 min-w-0">
-                      <h3 className="font-bold text-lg text-gray-900 leading-tight truncate">{venda.cliente}</h3>
-                      <p className="text-xs text-gray-500 truncate">{venda.email}</p>
-                      
-                      {/* NOVO: Data + Etiqueta de Pagamento */}
-                      <div className="flex flex-col gap-1.5 mt-2">
-                        <p className="text-xs text-gray-400">{new Date(venda.data).toLocaleString('pt-BR')}</p>
-                        {venda.metodoPagamento === 'pix' ? (
-                          <span className="w-fit text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-100">💠 Pix</span>
-                        ) : venda.metodoPagamento === 'vr' ? (
-                          <span className="w-fit text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">💳 VR</span>
+                  <div>
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="pr-4 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-lg text-gray-900 leading-tight truncate">{venda.cliente}</h3>
+                          
+                          {/* BOTÃO DE EXCLUIR/CANCELAR PEDIDO */}
+                          <button
+                            onClick={() => excluirPedido(venda.id, venda.cliente)}
+                            title="Cancelar/Excluir Pedido"
+                            className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-red-50 text-xs font-bold flex items-center gap-1"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 truncate">{venda.email}</p>
+                        
+                        <div className="flex flex-col gap-1.5 mt-2">
+                          <p className="text-xs text-gray-400">{new Date(venda.data).toLocaleString('pt-BR')}</p>
+                          {venda.metodoPagamento === 'pix' ? (
+                            <span className="w-fit text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-100">💠 Pix</span>
+                          ) : venda.metodoPagamento === 'vr' ? (
+                            <span className="w-fit text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">💳 VR</span>
+                          ) : (
+                            <span className="w-fit text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 border border-gray-200">Não informado</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-1 text-right shrink-0">
+                        <span className="font-extrabold text-gray-800 text-lg">
+                          R$ {venda.total.toFixed(2).replace('.', ',')}
+                        </span>
+
+                        {venda.pago ? (
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-green-100 text-green-700">Pago</span>
+                        ) : venda.aguardandoConfirmacao ? (
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-blue-100 text-blue-700 animate-pulse">Em Análise</span>
                         ) : (
-                          <span className="w-fit text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 border border-gray-200">Não informado</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-amber-100 text-amber-700">Pendente</span>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-end gap-1 text-right shrink-0">
-                      <span className="font-extrabold text-gray-800 text-lg">
-                        R$ {venda.total.toFixed(2).replace('.', ',')}
-                      </span>
-
-                      {venda.pago ? (
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-green-100 text-green-700">Pago</span>
-                      ) : venda.aguardandoConfirmacao ? (
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-blue-100 text-blue-700 animate-pulse">Em Análise</span>
-                      ) : (
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-amber-100 text-amber-700">Pendente</span>
-                      )}
+                    <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 mb-4 flex-grow">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Itens do Pedido</p>
+                      {venda.itens && venda.itens.map((item, index) => (
+                        <div key={index} className="flex justify-between items-center text-sm mb-1 border-b border-gray-100 last:border-0 pb-1 last:pb-0">
+                          <span className="font-medium text-gray-700 truncate mr-2">{item.quantidade}x {item.nome}</span>
+                          <span className="text-gray-500 font-medium shrink-0">
+                            R$ {(item.preco * item.quantidade).toFixed(2).replace('.', ',')}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
-                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 mb-4 flex-grow">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Itens do Pedido</p>
-                    {venda.itens && venda.itens.map((item, index) => (
-                      <div key={index} className="flex justify-between items-center text-sm mb-1 border-b border-gray-100 last:border-0 pb-1 last:pb-0">
-                        <span className="font-medium text-gray-700 truncate mr-2">{item.quantidade}x {item.nome}</span>
-                        <span className="text-gray-500 font-medium shrink-0">
-                          R$ {(item.preco * item.quantidade).toFixed(2).replace('.', ',')}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {!venda.pago ? (
-                    venda.aguardandoConfirmacao ? (
-                      <div className="flex gap-2 w-full mt-2">
-                        <button
-                          onClick={() => setVendaRecusar(venda)}
-                          className="w-1/3 font-bold py-3 rounded-xl transition-all duration-300 active:scale-95 bg-red-50 text-red-600 border border-red-100 hover:bg-red-600 hover:text-white text-sm"
-                        >
-                          Recusar
-                        </button>
+                  <div>
+                    {!venda.pago ? (
+                      venda.aguardandoConfirmacao ? (
+                        <div className="flex gap-2 w-full mt-2">
+                          <button
+                            onClick={() => setVendaRecusar(venda)}
+                            className="w-1/3 font-bold py-3 rounded-xl transition-all duration-300 active:scale-95 bg-red-50 text-red-600 border border-red-100 hover:bg-red-600 hover:text-white text-sm"
+                          >
+                            Recusar
+                          </button>
+                          <button
+                            onClick={() => marcarComoPago(venda.id)}
+                            className="w-2/3 font-bold py-3 rounded-xl transition-all duration-300 active:scale-95 bg-blue-600 text-white shadow-md hover:bg-blue-700 animate-pulse shadow-blue-500/30 text-sm"
+                          >
+                            Aprovar Pagamento
+                          </button>
+                        </div>
+                      ) : (
                         <button
                           onClick={() => marcarComoPago(venda.id)}
-                          className="w-2/3 font-bold py-3 rounded-xl transition-all duration-300 active:scale-95 bg-blue-600 text-white shadow-md hover:bg-blue-700 animate-pulse shadow-blue-500/30 text-sm"
+                          className="w-full font-bold py-3 rounded-xl transition-all duration-300 active:scale-95 bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-600 hover:text-white"
                         >
-                          Aprovar Pagamento
+                          Marcar como Recebido
                         </button>
-                      </div>
+                      )
                     ) : (
-                      <button
-                        onClick={() => marcarComoPago(venda.id)}
-                        className="w-full font-bold py-3 rounded-xl transition-all duration-300 active:scale-95 bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-600 hover:text-white"
-                      >
-                        Marcar como Recebido
-                      </button>
-                    )
-                  ) : (
-                    <div className="w-full bg-gray-50 text-gray-400 border border-gray-100 font-bold py-3 rounded-xl text-center cursor-not-allowed">
-                      Recebido
-                    </div>
-                  )}
+                      <div className="w-full bg-gray-50 text-gray-400 border border-gray-100 font-bold py-3 rounded-xl text-center cursor-not-allowed">
+                        Recebido
+                      </div>
+                    )}
+                  </div>
 
                 </div>
               ))}
