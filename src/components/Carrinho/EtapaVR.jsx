@@ -67,7 +67,7 @@ export default function EtapaVR({
     }
   };
 
-  const fecharModalPix = () => {
+  const fecharModalVR = () => {
     fecharCarrinho();
   };
 
@@ -76,7 +76,7 @@ export default function EtapaVR({
       <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl flex flex-col animate-fade-in-up overflow-hidden">
         
         <div className="bg-emerald-500 w-full pt-6 pb-8 px-4 flex flex-col items-center relative">
-          <button onClick={fecharModalPix} className="absolute top-4 right-4 bg-black/10 text-white hover:bg-black/20 w-8 h-8 rounded-full flex items-center justify-center transition-colors">
+          <button onClick={fecharModalVR} className="absolute top-4 right-4 bg-black/10 text-white hover:bg-black/20 w-8 h-8 rounded-full flex items-center justify-center transition-colors">
             ✕
           </button>
           <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-md text-3xl mt-2 overflow-hidden">

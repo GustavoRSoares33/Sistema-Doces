@@ -23,6 +23,7 @@ import Cabebecalho from "./components/Cabeçalho/Cabecalho";
 import TelaLoja from "./components/TelaLoja/TelaLoja";
 import MenuAdmin from "./components/Admin/MenuAdmin";
 import FechamentoVR from "./components/Admin/FechamentoVR";
+import FechamentoPix from "./components/Admin/FechamentoPix";
 
 // === ATENÇÃO: COLOQUE O SEU E-MAIL AQUI PARA SER O ADMIN ===
 const EMAILS_ADMIN = ["gugars04@gmail.com", "vitorrodriguessoares@outlook.com"];
@@ -331,6 +332,13 @@ export default function App() {
         {telaAtual === "fechamentoVR" && isAdmin && (
           <div className="w-full mt-4">
             <FechamentoVR voltarParaLoja={() => setTelaAtual("admin")} />
+          </div>
+        )}
+
+        {/* ---------------- TELA 6: FECHAMENTO Pix ---------------- */}
+        {telaAtual === "fechamentoPix" && isAdmin && (
+          <div className="w-full mt-4">
+            <FechamentoPix voltarParaLoja={() => setTelaAtual("admin")} />
           </div>
         )}
       </div>

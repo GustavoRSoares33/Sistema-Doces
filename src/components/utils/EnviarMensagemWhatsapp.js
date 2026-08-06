@@ -1,6 +1,7 @@
-export const enviarCobrancaWhatsApp = (cliente, linkVR) => {
-  if (!linkVR) {
-    alert("⚠️ Cole o link de pagamento do VR antes de enviar!");
+export const enviarCobrancaWhatsApp = (cliente, chaveOuLink, metodo = 'vr') => {
+  // 1. Validação
+  if (!chaveOuLink) {
+    alert(`⚠️ Adicione ${metodo === 'pix' ? 'a chave Pix no arquivo .env' : 'o link de pagamento'} antes de enviar!`);
     return false;
   }
 
@@ -9,23 +10,29 @@ export const enviarCobrancaWhatsApp = (cliente, linkVR) => {
     return false;
   }
 
-  // 1. Montar a listagem de itens linha por linha
+  // 2. Limpar o número (remove () - e espaços para o WhatsApp abrir direto)
+  const telefoneLimpo = cliente.telefone.replace(/\D/g, '');
+
+  // 3. Montar a listagem de itens (Ex: "2x Bolo de pote")
   let listaItens = '';
   if (cliente.itensComprados) {
-    // Pega todos os itens que agrupamos e cria o texto "Nome do doce: Quantidade"
     Object.entries(cliente.itensComprados).forEach(([nomeItem, quantidade]) => {
-      listaItens += `${nomeItem}: ${quantidade}\n`;
+      listaItens += `${quantidade}x ${nomeItem}\n`;
     });
   }
 
-  // 2. Montar a mensagem no formato exato solicitado
-  const textoMensagem = `Olá, *${cliente.nome}*! Tudo bem? \n\nPassando para enviar o resumo e o link de pagamento VR referente às suas compras.\n\n*Seus doces:*\n${listaItens}\n*Valor Total:* R$ ${cliente.totalDevido.toFixed(2).replace('.', ',')}\n\n *Link para pagamento:*\n${linkVR}\n\nMuito obrigado pela preferência!`;
+  // 4. Mudar as palavras do texto dependendo do método (Pix ou VR)
+  const textoMetodo = metodo === 'pix' ? "a chave Pix" : "o link de pagamento VR";
+  const textoChamada = metodo === 'pix' ? "*Chave Pix para pagamento:*" : "*Link para pagamento:*";
 
-  // 3. Codificar para URL
+  // 5. Montar a mensagem completa
+  const textoMensagem = `Olá, *${cliente.nome}*! Tudo bem? \n\nPassando para enviar o resumo e ${textoMetodo} referente às suas compras.\n\n*Seus doces:*\n${listaItens}\n*Valor Total:* R$ ${cliente.totalDevido.toFixed(2).replace('.', ',')}\n\n${textoChamada}\n${chaveOuLink}\n\nMuito obrigado pela preferência!`;
+
+  // 6. Codificar para URL
   const textoCodificado = encodeURIComponent(textoMensagem);
 
-  // 4. Montar a URL do WhatsApp e disparar
-  const urlWhatsApp = `https://wa.me/${cliente.telefone}?text=${textoCodificado}`;
+  // 7. Montar a URL do WhatsApp e disparar
+  const urlWhatsApp = `https://wa.me/${telefoneLimpo}?text=${textoCodificado}`;
   window.open(urlWhatsApp, '_blank');
   
   return true;

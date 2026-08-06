@@ -4,20 +4,21 @@ import { db } from '../../firebase';
 
 import { enviarCobrancaWhatsApp } from '../utils/EnviarMensagemWhatsapp';
 
-export default function FechamentoVR({ voltarParaLoja }) {
+const CHAVE_PIX = process.env.REACT_APP_CHAVE_PIX;
+
+export default function FechamentoPix({ voltarParaLoja }) {
   const [clientesDevedores, setClientesDevedores] = useState([]);
   const [carregando, setCarregando] = useState(true);
   
-  const [linksVR, setLinksVR] = useState({});
   const [baixandoPagamento, setBaixandoPagamento] = useState({});
   
   const [cobrancasEnviadas, setCobrancasEnviadas] = useState(() => {
-    const salvas = localStorage.getItem('cobrancasEnviadas_VR');
+    const salvas = localStorage.getItem('cobrancasEnviadas_Pix');
     return salvas ? JSON.parse(salvas) : {};
   });
 
   useEffect(() => {
-    localStorage.setItem('cobrancasEnviadas_VR', JSON.stringify(cobrancasEnviadas));
+    localStorage.setItem('cobrancasEnviadas_Pix', JSON.stringify(cobrancasEnviadas));
   }, [cobrancasEnviadas]);
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export default function FechamentoVR({ voltarParaLoja }) {
         querySnapshot.docs.forEach(documento => {
           const venda = documento.data();
           
-          if (!venda.pago && !venda.aguardandoConfirmacao && venda.metodoPagamento === 'vr') {
+          if (!venda.pago && !venda.aguardandoConfirmacao && venda.metodoPagamento === 'pix') {
             const email = venda.email;
             
             if (!agrupado[email]) {
@@ -79,18 +80,12 @@ export default function FechamentoVR({ voltarParaLoja }) {
     buscarPendencias();
   }, []);
 
-  const handleLinkChange = (email, valor) => {
-    setLinksVR(prev => ({ ...prev, [email]: valor }));
-  };
-
   const handleDispararWhatsApp = (cliente) => {
-    const linkParaPagar = linksVR[cliente.email];
-    const sucesso = enviarCobrancaWhatsApp(cliente, linkParaPagar, 'vr');
+    const sucesso = enviarCobrancaWhatsApp(cliente, CHAVE_PIX, 'pix');
 
     if (sucesso) {
       // CORREÇÃO: Salva a lista exata de IDs que foram cobrados
       setCobrancasEnviadas(prev => ({ ...prev, [cliente.email]: cliente.vendaIds.join(',') }));
-      setLinksVR(prev => ({ ...prev, [cliente.email]: '' }));
     }
   };
 
@@ -103,7 +98,7 @@ export default function FechamentoVR({ voltarParaLoja }) {
   };
 
   const concluirPagamento = async (cliente) => {
-    const confirmacao = window.confirm(`Tem certeza que ${cliente.nome} já pagou os R$ ${cliente.totalDevido.toFixed(2).replace('.', ',')}?`);
+    const confirmacao = window.confirm(`Tem certeza que ${cliente.nome} já pagou os R$ ${cliente.totalDevido.toFixed(2).replace('.', ',')} via Pix?`);
     
     if (!confirmacao) return;
 
@@ -133,7 +128,7 @@ export default function FechamentoVR({ voltarParaLoja }) {
   return (
     <div className="w-full flex flex-col gap-6 animate-fade-in-up">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex justify-between items-center w-full">
-        <h2 className="text-2xl font-extrabold text-gray-800">Fechamento do Mês (VR)</h2>
+        <h2 className="text-2xl font-extrabold text-gray-800">Fechamento do Mês (Pix)</h2>
         <button 
           onClick={voltarParaLoja} 
           className="group flex items-center gap-2 text-sm text-gray-600 font-bold bg-white hover:bg-gray-50 px-4 py-2.5 rounded-xl border border-gray-200 transition-all active:scale-95 shadow-sm"
@@ -150,7 +145,7 @@ export default function FechamentoVR({ voltarParaLoja }) {
           <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center text-4xl mb-4">
             🎉
           </div>
-          <p className="text-gray-500 text-lg font-bold">Nenhum cliente com dívidas de VR pendentes!</p>
+          <p className="text-gray-500 text-lg font-bold">Nenhum cliente com pagamentos via Pix pendentes!</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
@@ -169,37 +164,28 @@ export default function FechamentoVR({ voltarParaLoja }) {
                   </p>
                 </div>
 
-                <div className="w-full xl:w-1/4 text-left xl:text-center bg-amber-50 p-3 rounded-xl border border-amber-100">
-                  <p className="text-xs font-bold text-amber-600 uppercase">Devendo</p>
-                  <p className="text-xl font-extrabold text-amber-700">
+                <div className="w-full xl:w-1/4 text-left xl:text-center bg-indigo-50 p-3 rounded-xl border border-indigo-100">
+                  <p className="text-xs font-bold text-indigo-600 uppercase">Devendo</p>
+                  <p className="text-xl font-extrabold text-indigo-700">
                     R$ {cliente.totalDevido.toFixed(2).replace('.', ',')}
                   </p>
-                  <p className="text-[11px] font-bold text-amber-600/70">
+                  <p className="text-[11px] font-bold text-indigo-600/70">
                     {cliente.qtdPedidos} {cliente.qtdPedidos === 1 ? 'pedido' : 'pedidos'}
                   </p>
                 </div>
 
-                <div className="w-full xl:w-auto flex-grow flex flex-col sm:flex-row gap-2">
-                  <input 
-                    type="text" 
-                    placeholder="Cole o link do VR aqui..." 
-                    value={linksVR[cliente.email] || ''}
-                    onChange={(e) => handleLinkChange(cliente.email, e.target.value)}
-                    disabled={jaFoiEnviado}
-                    className="w-full sm:flex-grow bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:bg-gray-100 disabled:text-gray-400 transition-colors"
-                  />
-                  
+                <div className="w-full xl:w-auto flex-grow flex flex-col sm:flex-row gap-2 justify-end">
                   <div className="flex gap-2 w-full sm:w-auto shrink-0">
                     <button
                       onClick={() => handleDispararWhatsApp(cliente)}
                       disabled={jaFoiEnviado}
-                      className={`flex-1 sm:flex-none font-bold px-4 py-3 rounded-xl shadow-sm transition-all text-sm ${
+                      className={`flex-1 sm:flex-none font-bold px-6 py-3 rounded-xl shadow-sm transition-all text-sm ${
                         jaFoiEnviado 
                           ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-                          : 'bg-emerald-500 hover:bg-emerald-600 text-white active:scale-95'
+                          : 'bg-indigo-500 hover:bg-indigo-600 text-white active:scale-95'
                       }`}
                     >
-                      {jaFoiEnviado ? '✓ Enviado' : '🟢 Cobrar'}
+                      {jaFoiEnviado ? '✓ Enviado' : '💠 Cobrar Pix'}
                     </button>
                     
                     {jaFoiEnviado && (
@@ -207,7 +193,7 @@ export default function FechamentoVR({ voltarParaLoja }) {
                         <button
                           onClick={() => concluirPagamento(cliente)}
                           disabled={baixandoPagamento[cliente.email]}
-                          className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold px-4 py-3 rounded-xl shadow-sm transition-all active:scale-95 text-sm flex items-center justify-center animate-fade-in-up"
+                          className="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white font-bold px-6 py-3 rounded-xl shadow-sm transition-all active:scale-95 text-sm flex items-center justify-center animate-fade-in-up"
                         >
                           {baixandoPagamento[cliente.email] ? '...' : '✅ Concluir'}
                         </button>
@@ -223,6 +209,7 @@ export default function FechamentoVR({ voltarParaLoja }) {
                     )}
                   </div>
                 </div>
+
               </div>
             );
           })}

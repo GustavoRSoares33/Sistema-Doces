@@ -12,8 +12,9 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
   const [filtroStatus, setFiltroStatus] = useState('todos');
   const [filtroMetodo, setFiltroMetodo] = useState('todos');
 
-  // Estados para controlar o Modal de Recusa
+  // Estados para controlar os Modais
   const [vendaRecusar, setVendaRecusar] = useState(null);
+  const [modalAprovacaoMassa, setModalAprovacaoMassa] = useState(false);
   const [processandoAcao, setProcessandoAcao] = useState(false);
 
   // Estado para controlar o mês do PDF
@@ -22,14 +23,40 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
     return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
   });
 
+  // =========================================================================
+  // ATUALIZADO: Busca de vendas com Limpeza Automática de registros antigos
+  // =========================================================================
   useEffect(() => {
     const buscarVendas = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, "vendas"));
-        const listaVendas = querySnapshot.docs.map((documento) => ({
-          id: documento.id,
-          ...documento.data()
-        }));
+        const listaVendas = [];
+
+        // Calcula exatamente a data de 2 meses atrás
+        const dataLimite = new Date();
+        dataLimite.setMonth(dataLimite.getMonth() - 2);
+        const dataLimiteISO = dataLimite.toISOString();
+
+        const promessasDelecao = [];
+
+        querySnapshot.docs.forEach((documento) => {
+          const venda = documento.data();
+
+          // REGRA DE OURO: Só apaga se for mais antigo que 2 meses E já estiver PAGO
+          if (venda.data < dataLimiteISO && venda.pago === true) {
+            promessasDelecao.push(deleteDoc(doc(db, "vendas", documento.id)));
+          } else {
+            // Se for recente (ou se for antigo mas o cliente ainda deve), mantém na tela
+            listaVendas.push({ id: documento.id, ...venda });
+          }
+        });
+
+        // Dispara a exclusão no banco de dados silenciosamente, sem travar o usuário
+        if (promessasDelecao.length > 0) {
+          Promise.all(promessasDelecao)
+            .then(() => console.log(`Limpeza automática: ${promessasDelecao.length} registros antigos apagados.`))
+            .catch(err => console.error("Erro na limpeza automática:", err));
+        }
 
         listaVendas.sort((a, b) => new Date(b.data) - new Date(a.data));
         setVendas(listaVendas);
@@ -92,7 +119,6 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
     }
   };
 
-  // NOVO: Função para excluir/cancelar o pedido definitivamente
   const excluirPedido = async (idVenda, nomeCliente) => {
     const confirmacao = window.confirm(
       `Tem certeza que deseja EXCLUIR o pedido de ${nomeCliente}? Essa ação não poderá ser desfeita.`
@@ -103,10 +129,8 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
     try {
       await deleteDoc(doc(db, "vendas", idVenda));
 
-      // Remove da tela instantaneamente
       setVendas((vendasAtuais) => vendasAtuais.filter((venda) => venda.id !== idVenda));
 
-      // Atualiza o total pendente caso fosse uma compra em aberto
       if (atualizarTotalPendente) atualizarTotalPendente();
 
     } catch (error) {
@@ -135,6 +159,39 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
     return passaStatus && passaBusca && passaMetodo;
   });
 
+  const comprasEmAnalise = vendasFiltradas.filter(v => !v.pago && v.aguardandoConfirmacao);
+
+  const executarAprovacaoEmMassa = async () => {
+    setProcessandoAcao(true);
+
+    try {
+      const promessas = comprasEmAnalise.map((venda) => {
+        const vendaRef = doc(db, "vendas", venda.id);
+        return updateDoc(vendaRef, { pago: true, aguardandoConfirmacao: false });
+      });
+
+      await Promise.all(promessas);
+
+      const idsAprovados = comprasEmAnalise.map(v => v.id);
+
+      setVendas((vendasAtuais) =>
+        vendasAtuais.map((venda) =>
+          idsAprovados.includes(venda.id) ? { ...venda, pago: true, aguardandoConfirmacao: false } : venda
+        )
+      );
+
+      if (atualizarTotalPendente) atualizarTotalPendente();
+
+      setModalAprovacaoMassa(false); 
+
+    } catch (error) {
+      console.error("Erro ao aprovar todos em lote:", error);
+      alert("Erro ao aprovar pagamentos.");
+    } finally {
+      setProcessandoAcao(false);
+    }
+  };
+
   return (
     <div className="w-full flex flex-col gap-6 relative">
 
@@ -142,16 +199,13 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
       {vendaRecusar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl flex flex-col items-center animate-fade-in-up">
-
             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-3xl mb-4 border border-red-100">
               ⚠️
             </div>
-
             <h3 className="text-xl font-extrabold text-gray-800 mb-2 text-center">Recusar Pagamento?</h3>
             <p className="text-gray-500 text-sm text-center mb-6">
               O pedido de <strong>{vendaRecusar.cliente}</strong> voltará para o status "Pendente". Confirme apenas se o dinheiro realmente não caiu na conta.
             </p>
-
             <div className="flex gap-3 w-full">
               <button
                 onClick={() => setVendaRecusar(null)}
@@ -168,7 +222,37 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
                 {processandoAcao ? 'Aguarde...' : 'Sim, recusar'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
 
+      {/* ================= MODAL DE APROVAÇÃO EM LOTE ================= */}
+      {modalAprovacaoMassa && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl flex flex-col items-center animate-fade-in-up">
+            <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-3xl mb-4 border border-blue-100 shadow-inner">
+              ✅
+            </div>
+            <h3 className="text-xl font-extrabold text-gray-800 mb-2 text-center">Aprovar Pagamentos?</h3>
+            <p className="text-gray-500 text-sm text-center mb-6">
+              Você está prestes a aprovar <strong className="text-blue-600 text-lg">{comprasEmAnalise.length}</strong> {comprasEmAnalise.length === 1 ? 'pedido' : 'pedidos'} de uma vez. Confirme apenas se já verificou o recebimento.
+            </p>
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={() => setModalAprovacaoMassa(false)}
+                disabled={processandoAcao}
+                className="w-1/2 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={executarAprovacaoEmMassa}
+                disabled={processandoAcao}
+                className="w-1/2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-3 rounded-xl transition-all flex justify-center items-center shadow-md"
+              >
+                {processandoAcao ? 'Aguarde...' : 'Sim, aprovar'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -205,7 +289,6 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
             />
           </div>
         </div>
-
         <button 
           onClick={() => gerarRelatorioPDF(vendas, mesRelatorio)} 
           className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-800 text-white font-bold px-6 py-3 rounded-xl hover:bg-slate-700 active:scale-95 transition-all shadow-sm text-sm"
@@ -287,6 +370,18 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
         <p className="text-center text-gray-500 my-10 font-semibold animate-pulse">Carregando dados do banco...</p>
       ) : (
         <div className="flex flex-col gap-4">
+          
+          {comprasEmAnalise.length > 0 && (
+            <div className="flex justify-end mb-2 animate-fade-in-up">
+              <button
+                onClick={() => setModalAprovacaoMassa(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2"
+              >
+                ✅ Aprovar todos em análise ({comprasEmAnalise.length})
+              </button>
+            </div>
+          )}
+
           {vendas.length === 0 ? (
             <p className="text-center text-gray-500 bg-white p-10 rounded-2xl border border-gray-100 shadow-sm">
               Nenhuma venda registrada ainda.
@@ -297,17 +392,14 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-
               {vendasFiltradas.map((venda) => (
                 <div key={venda.id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between h-full">
-
                   <div>
                     <div className="flex justify-between items-start mb-4">
                       <div className="pr-4 min-w-0">
                         <div className="flex items-center gap-2">
                           <h3 className="font-bold text-lg text-gray-900 leading-tight truncate">{venda.cliente}</h3>
                           
-                          {/* BOTÃO DE EXCLUIR/CANCELAR PEDIDO */}
                           <button
                             onClick={() => excluirPedido(venda.id, venda.cliente)}
                             title="Cancelar/Excluir Pedido"
@@ -389,10 +481,8 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
                       </div>
                     )}
                   </div>
-
                 </div>
               ))}
-
             </div>
           )}
         </div>
