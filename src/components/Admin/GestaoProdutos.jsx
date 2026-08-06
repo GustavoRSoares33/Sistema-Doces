@@ -139,7 +139,7 @@ export default function GestaoProdutos({ voltarParaLoja, produtoEditando }) {
             <button
               type="submit"
               disabled={salvando}
-              className="w-2/3 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-bold py-3 rounded-xl shadow-sm hover:shadow-md transition-all flex justify-center items-center"
+              className="w-2/3 bg-[#ff5943] hover:bg-[#e64c38] active:bg-[#cc4230] text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex justify-center items-center"
             >
               {salvando ? (
                 <span className="animate-pulse">Salvando...</span>

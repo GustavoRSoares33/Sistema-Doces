@@ -24,6 +24,7 @@ import TelaLoja from "./components/TelaLoja/TelaLoja";
 import MenuAdmin from "./components/Admin/MenuAdmin";
 import FechamentoVR from "./components/Admin/FechamentoVR";
 import FechamentoPix from "./components/Admin/FechamentoPix";
+import Rodape from "./components/Cabeçalho/Rodape";
 
 // === ATENÇÃO: COLOQUE O SEU E-MAIL AQUI PARA SER O ADMIN ===
 const EMAILS_ADMIN = ["gugars04@gmail.com", "vitorrodriguessoares@outlook.com"];
@@ -242,22 +243,23 @@ export default function App() {
           handleSair={handleSair}
           isAdmin={isAdmin}
         />
-        {/* ---------------- RODAPÉ DE AJUDA E SUPORTE ---------------- */}
-        <div className="mt-8 mb-6 text-center text-sm text-slate-500 animate-fade-in-up w-full">
-          <p>Precisa de ajuda com o sistema ou algum pedido?</p>
+        {/* ---------------- AJUDA E SUPORTE ---------------- */}
+        <div className="mt-8 text-center text-sm text-slate-500 animate-fade-in-up">
+          <p>Está com algum problema para acessar?</p>
           <p className="mt-1">
             Chame o{" "}
             <strong className="text-slate-700">Vitor Rodrigues Soares</strong>{" "}
-            no{" "}
+            no Whatsapp{" "}
             <a
-              href="https://wa.me/5513981466112" // TODO: Coloque o número real com o DDD aqui!
+              href="https://wa.me/5513981466112"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-purple-600 font-bold hover:underline transition-colors"
+              // Cores do link de suporte atualizadas
+              className="text-[#ff5943] font-bold hover:underline transition-colors"
             >
-              WhatsApp
+              clicando aqui
             </a>{" "}
-            ou no <span className="text-purple-600 font-bold">Teams</span>.
+            ou no <span className="text-[#ff5943] font-bold">Teams</span>.
           </p>
         </div>
 
@@ -341,6 +343,9 @@ export default function App() {
             <FechamentoPix voltarParaLoja={() => setTelaAtual("admin")} />
           </div>
         )}
+
+        <Rodape />
+
       </div>
     </div>
   );

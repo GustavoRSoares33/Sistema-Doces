@@ -8,6 +8,8 @@ import {
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 
+import logoSite from './Images/logoSite.png'
+
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
   const [nome, setNome] = useState("");
@@ -71,7 +73,6 @@ export default function Login() {
     setErro("");
     setSucesso("");
 
-    // Agora o erro aparece na nossa caixinha vermelha estilizada!
     if (!email) {
       setErro(
         "Por favor, digite seu e-mail no campo abaixo para recuperar a senha.",
@@ -81,7 +82,6 @@ export default function Login() {
 
     try {
       await sendPasswordResetEmail(auth, email);
-      // O sucesso aparece numa caixinha verde!
       setSucesso(
         "E-mail de recuperação enviado! Verifique sua caixa de entrada e o Spam.",
       );
@@ -100,33 +100,35 @@ export default function Login() {
   };
 
   return (
-    // Adicionado flex-col para empilhar o cartão e o rodapé de ajuda
     <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4">
       <div className="bg-white w-full max-w-md rounded-3xl shadow-xl border border-gray-200 overflow-hidden">
-        <div className="bg-gradient-to-r from-purple-700 to-indigo-600 p-8 text-center">
-          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm border border-white/20 shadow-inner">
-            <span className="text-3xl">🧁</span>
+        
+        {/* NOVO GRADIENTE AQUI */}
+        <div className="bg-gradient-to-r from-[#ff5943] to-[#ff8453] p-8 text-center">
+          <div className="w-20 h-20 flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+            <img src={logoSite} alt="Logo do site" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">
-            Caixa de Doces
+            Elaine Cakes
           </h1>
-          <p className="text-purple-100 text-sm mt-1">
+          {/* Cor do subtítulo ajustada para harmonizar com o fundo */}
+          <p className="text-[#ffe8e4] text-sm mt-1">
             {isLogin
-              ? "Faça login para gerenciar sua loja"
+              ? "Faça login para gerenciar suas compras"
               : "Crie sua conta para começar"}
           </p>
         </div>
 
         <div className="p-8">
           <form onSubmit={handleAuth} className="flex flex-col gap-4">
-            {/* CAIXINHA DE ERRO (Vermelha) */}
+            {/* CAIXINHA DE ERRO */}
             {erro && (
               <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm font-bold text-center border border-red-100 animate-fade-in-up">
                 {erro}
               </div>
             )}
 
-            {/* CAIXINHA DE SUCESSO (Verde) */}
+            {/* CAIXINHA DE SUCESSO */}
             {sucesso && (
               <div className="bg-emerald-50 text-emerald-600 p-3 rounded-xl text-sm font-bold text-center border border-emerald-100 animate-fade-in-up">
                 {sucesso}
@@ -143,7 +145,8 @@ export default function Login() {
                   placeholder="Seu nome completo"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all shadow-sm"
+                  // Atualizado focus:ring
+                  className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ff5943] transition-all shadow-sm"
                 />
               </div>
             )}
@@ -158,7 +161,8 @@ export default function Login() {
                 placeholder="seuemail@exemplo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all shadow-sm"
+                // Atualizado focus:ring
+                className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ff5943] transition-all shadow-sm"
               />
             </div>
 
@@ -168,11 +172,12 @@ export default function Login() {
               </label>
               <input
                 type="password"
-                required={!sucesso} // Se estiver recuperando senha, não obriga a preencher para não travar
+                required={!sucesso}
                 placeholder="••••••••"
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
-                className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all shadow-sm"
+                // Atualizado focus:ring
+                className="w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ff5943] transition-all shadow-sm"
               />
 
               {isLogin && (
@@ -180,7 +185,8 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={handleRecuperarSenha}
-                    className="text-sm font-bold text-purple-600 hover:text-purple-800 transition-colors bg-transparent border-none cursor-pointer hover:underline"
+                    // Cores do link atualizadas
+                    className="text-sm font-bold text-[#ff5943] hover:text-[#d94530] transition-colors bg-transparent border-none cursor-pointer hover:underline"
                   >
                     Esqueceu a senha?
                   </button>
@@ -191,7 +197,8 @@ export default function Login() {
             <button
               type="submit"
               disabled={carregando}
-              className="w-full mt-2 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex justify-center items-center"
+              // Cores do botão principal atualizadas (bg, hover e active)
+              className="w-full mt-2 bg-[#ff5943] hover:bg-[#e64c38] active:bg-[#cc4230] text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex justify-center items-center"
             >
               {carregando ? (
                 <span className="animate-pulse">Aguarde...</span>
@@ -210,11 +217,12 @@ export default function Login() {
             <button
               onClick={() => {
                 setIsLogin(!isLogin);
-                setErro(""); // Limpa o erro ao trocar de tela
-                setSucesso(""); // Limpa o sucesso ao trocar de tela
+                setErro("");
+                setSucesso("");
               }}
               type="button"
-              className="ml-2 text-purple-600 font-bold hover:text-purple-800 transition-colors hover:underline"
+              // Cores do link de alternância atualizadas
+              className="ml-2 text-[#ff5943] font-bold hover:text-[#d94530] transition-colors hover:underline"
             >
               {isLogin ? "Cadastre-se" : "Faça Login"}
             </button>
@@ -222,21 +230,21 @@ export default function Login() {
         </div>
       </div>
 
-      {/* NOVO: Aviso de Suporte (Fora do cartão, sutil e elegante) */}
       <div className="mt-8 text-center text-sm text-slate-500 animate-fade-in-up">
         <p>Está com algum problema para acessar?</p>
         <p className="mt-1">
           Chame o{" "}
-          <strong className="text-slate-700">Vitor Rodrigues Soares</strong> no{" "}
+          <strong className="text-slate-700">Vitor Rodrigues Soares</strong> no Whatsapp{" "}
           <a
-            href="https://wa.me/5513981466112" // TODO: Coloque o número real com o DDD aqui!
+            href="https://wa.me/5513981466112"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-purple-600 font-bold hover:underline transition-colors"
+            // Cores do link de suporte atualizadas
+            className="text-[#ff5943] font-bold hover:underline transition-colors"
           >
-            WhatsApp
+            clicando aqui
           </a>{" "}
-          ou no <span className="text-purple-600 font-bold">Teams</span>.
+          ou no <span className="text-[#ff5943] font-bold">Teams</span>.
         </p>
       </div>
     </div>

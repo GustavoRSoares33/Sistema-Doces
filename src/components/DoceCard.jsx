@@ -4,16 +4,13 @@ export default function DoceCard({ doce, aoAdicionar, aoRemover, isAdmin, aoEdit
   const quantidade = itemNoCarrinho ? itemNoCarrinho.quantidade : 0;
 
   return (
-    // NOVO: overflow-hidden para respeitar os cantos arredondados das "zonas", 
-    // e animação de flutuação (hover:-translate-y-1 hover:shadow-lg hover:border-purple-100)
-      <div className="bg-white rounded-3xl shadow-md border border-gray-200 hover:shadow-xl hover:-translate-y-1 hover:border-purple-300 transition-all duration-300 flex flex-col justify-between w-full overflow-hidden">      
+      <div className="bg-white rounded-3xl shadow-md border border-gray-200 hover:shadow-xl hover:-translate-y-1 hover:border-[#ff5943]/50 transition-all duration-300 flex flex-col justify-between w-full overflow-hidden">      
       {/* ZONA 1: Área do Cliente (Fundo Branco com Padding) */}
       <div className="p-5 flex justify-between items-center gap-4 bg-white">
         
         {/* Lado Esquerdo: Foto e Textos lado a lado */}
         <div className="flex items-center gap-4">
           
-          {/* Foto do Doce com borda mais sutil */}
           <div className="w-16 h-16 shrink-0 flex-none rounded-2xl overflow-hidden shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)] bg-slate-50 flex items-center justify-center">
             {doce.imagemUrl ? (
               <img 
@@ -53,19 +50,20 @@ export default function DoceCard({ doce, aoAdicionar, aoRemover, isAdmin, aoEdit
 
           <button 
             onClick={() => aoAdicionar(doce)}
-            className="w-10 h-10 bg-purple-50 text-purple-600 rounded-full font-bold text-xl flex items-center justify-center hover:bg-purple-600 hover:text-white active:scale-95 transition-all shrink-0"
+            className="w-10 h-10 bg-[#ffe8e4] text-[#ff5943] rounded-full font-bold text-xl flex items-center justify-center hover:bg-[#ff5943] hover:text-white active:scale-95 transition-all shrink-0"
           >
             +
           </button>
         </div>
       </div>
 
-      {/* ZONA 2: Área do Administrador (Fundo levemente cinza) */}
+      {/* ZONA 2: Área do Administrador (Fundo e botão alaranjados) */}
       {isAdmin && (
-        <div className="bg-slate-50 px-5 py-3 border-t border-gray-100 flex justify-end gap-3">
+        <div className="bg-[#fff5f4] px-5 py-3 border-t border-[#ff5943]/20 flex justify-end gap-3">
           <button 
             onClick={() => aoEditar(doce)} 
-            className="text-xs text-blue-600 font-bold px-4 py-2 bg-white border border-blue-100 rounded-lg hover:bg-blue-50 active:bg-blue-100 transition-colors shadow-sm"
+            // Botão editar agora usa o tom de laranja do tema em vez de azul
+            className="text-xs text-[#ff5943] font-bold px-4 py-2 bg-white border border-[#ff5943]/30 rounded-lg hover:bg-[#ffe8e4] active:bg-[#ff5943]/20 transition-colors shadow-sm"
           >
             Editar
           </button>
