@@ -159,6 +159,9 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
     return passaStatus && passaBusca && passaMetodo;
   });
 
+  // NOVO: Cálculo do valor total com base nas vendas filtradas na tela
+  const valorTotalFiltrado = vendasFiltradas.reduce((acc, venda) => acc + Number(venda.total || 0), 0);
+
   const comprasEmAnalise = vendasFiltradas.filter(v => !v.pago && v.aguardandoConfirmacao);
 
   const executarAprovacaoEmMassa = async () => {
@@ -371,14 +374,24 @@ export default function PainelFechamento({ voltarParaLoja, atualizarTotalPendent
       ) : (
         <div className="flex flex-col gap-4">
           
-          {comprasEmAnalise.length > 0 && (
-            <div className="flex justify-end mb-2 animate-fade-in-up">
-              <button
-                onClick={() => setModalAprovacaoMassa(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2"
-              >
-                ✅ Aprovar todos em análise ({comprasEmAnalise.length})
-              </button>
+          {/* BARRA DE RESUMO E BOTÕES DE AÇÃO */}
+          {vendasFiltradas.length > 0 && (
+            <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm mb-2 animate-fade-in-up">
+              <div className="flex flex-col items-center sm:items-start w-full sm:w-auto mb-3 sm:mb-0">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total em Tela</span>
+                <span className="text-2xl font-extrabold text-gray-800">
+                  R$ {valorTotalFiltrado.toFixed(2).replace('.', ',')}
+                </span>
+              </div>
+              
+              {comprasEmAnalise.length > 0 && (
+                <button
+                  onClick={() => setModalAprovacaoMassa(true)}
+                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  ✅ Aprovar {comprasEmAnalise.length} em análise
+                </button>
+              )}
             </div>
           )}
 
