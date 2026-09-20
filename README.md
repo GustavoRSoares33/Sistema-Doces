@@ -1,5 +1,7 @@
 # Sistema de Doces
 
+> **Repositório destinado exclusivamente a portfólio e demonstração técnica.**
+
 Aplicação web desenvolvida em **React** para gerenciamento e venda de doces, com autenticação de usuários, carrinho de compras, histórico de pedidos e área administrativa.
 
 O projeto utiliza **Firebase Authentication** e **Cloud Firestore** para autenticação e persistência dos dados.
@@ -86,50 +88,6 @@ O sistema possui dois tipos principais de uso:
 - **Usuário:** acessa a loja, carrinho, histórico e informações de compras.
 - **Administrador:** além das funções de usuário, possui acesso ao gerenciamento de produtos e aos painéis de fechamento.
 
-## 🚀 Como executar
-
-### Pré-requisitos
-
-- Node.js
-- npm
-- Projeto configurado no Firebase
-
-Clone o repositório:
-
-```bash
-git clone https://github.com/GustavoRSoares33/Sistema-Doces.git
-cd Sistema-Doces
-```
-
-Instale as dependências:
-
-```bash
-npm install
-```
-
-Inicie a aplicação:
-
-```bash
-npm start
-```
-
-A aplicação será aberta em:
-
-```text
-http://localhost:3000
-```
-
-## 🔥 Configuração do Firebase
-
-Para executar o sistema em outro ambiente, configure um projeto no Firebase com:
-
-- Authentication
-- Firestore Database
-
-Depois, configure as credenciais necessárias no arquivo de configuração utilizado pelo projeto.
-
-> Nunca publique senhas, tokens ou credenciais privadas do Firebase em repositórios públicos.
-
 ## 📄 Relatórios
 
 A aplicação utiliza **jsPDF** e **jsPDF AutoTable** para geração de documentos PDF a partir dos dados administrativos.
@@ -148,6 +106,14 @@ A aplicação utiliza **jsPDF** e **jsPDF AutoTable** para geração de document
 - Geração de relatórios em PDF
 - Interfaces responsivas
 
+## ⚠️ Uso do projeto
+
+Este repositório é disponibilizado publicamente **apenas para fins de portfólio, demonstração e avaliação técnica do código**.
+
+O código-fonte **não possui licença open source**. Não é concedida permissão para copiar, reutilizar, redistribuir, publicar, modificar, comercializar ou utilizar este projeto, no todo ou em parte, em outros sistemas sem autorização prévia do autor.
+
+As configurações reais de ambiente, credenciais, chaves, regras de segurança e demais dados sensíveis utilizados na versão em produção não fazem parte deste repositório.
+
 ---
 
-Projeto desenvolvido para prática de desenvolvimento web com React e Firebase.
+Projeto apresentado como parte do meu portfólio de desenvolvimento web com React e Firebase.
