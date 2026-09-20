@@ -1,70 +1,153 @@
-# Getting Started with Create React App
+# Sistema de Doces
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Aplicação web desenvolvida em **React** para gerenciamento e venda de doces, com autenticação de usuários, carrinho de compras, histórico de pedidos e área administrativa.
 
-## Available Scripts
+O projeto utiliza **Firebase Authentication** e **Cloud Firestore** para autenticação e persistência dos dados.
 
-In the project directory, you can run:
+## 🍬 Sobre o projeto
 
-### `npm start`
+O sistema foi criado para centralizar a venda de doces em uma interface simples e responsiva.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Usuários autenticados podem visualizar os produtos, adicionar itens ao carrinho, consultar compras anteriores e acompanhar valores pendentes.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Usuários administradores possuem acesso a ferramentas adicionais para gerenciamento de produtos e fechamento de vendas.
 
-### `npm test`
+## ✨ Funcionalidades
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Usuários
 
-### `npm run build`
+- Cadastro e autenticação com Firebase
+- Verificação de e-mail
+- Login e logout
+- Perfil do usuário
+- Histórico de compras
+- Consulta de valores pendentes
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Loja
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- Listagem de doces cadastrados
+- Carrinho de compras
+- Controle de quantidade dos itens
+- Cálculo automático do valor total
+- Fluxo de finalização da compra
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Pagamentos
 
-### `npm run eject`
+- Fluxo de pagamento via Pix
+- Fluxo de pagamento via VR
+- Registro de vendas no Firestore
+- Controle de pagamentos pendentes
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Área administrativa
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- Cadastro de produtos
+- Edição de produtos
+- Exclusão de produtos
+- Painel de fechamento
+- Fechamento de vendas via Pix
+- Fechamento de vendas via VR
+- Geração de relatórios em PDF
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## 🛠️ Tecnologias utilizadas
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- React
+- JavaScript
+- Firebase Authentication
+- Cloud Firestore
+- Tailwind CSS
+- DaisyUI
+- jsPDF
+- jsPDF AutoTable
+- Create React App
 
-## Learn More
+## 📁 Estrutura principal
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```text
+src/
+├── components/
+│   ├── Admin/
+│   ├── Cabeçalho/
+│   ├── Carrinho/
+│   ├── TelaLoja/
+│   ├── DoceCard.jsx
+│   ├── HistoricoCompras.jsx
+│   └── Login.jsx
+├── firebase.js
+├── config.js
+├── App.js
+├── index.css
+└── index.js
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## 🔐 Perfis de acesso
 
-### Code Splitting
+O sistema possui dois tipos principais de uso:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+- **Usuário:** acessa a loja, carrinho, histórico e informações de compras.
+- **Administrador:** além das funções de usuário, possui acesso ao gerenciamento de produtos e aos painéis de fechamento.
 
-### Analyzing the Bundle Size
+## 🚀 Como executar
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Pré-requisitos
 
-### Making a Progressive Web App
+- Node.js
+- npm
+- Projeto configurado no Firebase
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+Clone o repositório:
 
-### Advanced Configuration
+```bash
+git clone https://github.com/GustavoRSoares33/Sistema-Doces.git
+cd Sistema-Doces
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+Instale as dependências:
 
-### Deployment
+```bash
+npm install
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+Inicie a aplicação:
 
-### `npm run build` fails to minify
+```bash
+npm start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+A aplicação será aberta em:
+
+```text
+http://localhost:3000
+```
+
+## 🔥 Configuração do Firebase
+
+Para executar o sistema em outro ambiente, configure um projeto no Firebase com:
+
+- Authentication
+- Firestore Database
+
+Depois, configure as credenciais necessárias no arquivo de configuração utilizado pelo projeto.
+
+> Nunca publique senhas, tokens ou credenciais privadas do Firebase em repositórios públicos.
+
+## 📄 Relatórios
+
+A aplicação utiliza **jsPDF** e **jsPDF AutoTable** para geração de documentos PDF a partir dos dados administrativos.
+
+## 📚 Conceitos praticados
+
+- Componentização com React
+- React Hooks
+- Autenticação
+- Persistência em banco NoSQL
+- Controle de estado
+- CRUD
+- Carrinho de compras
+- Controle de acesso por perfil
+- Integração com Firebase
+- Geração de relatórios em PDF
+- Interfaces responsivas
+
+---
+
+Projeto desenvolvido para prática de desenvolvimento web com React e Firebase.
