@@ -78,6 +78,24 @@ const MenuAdmin = ({ setTelaAtual, setProdutoEditando, voltarParaLoja }) => {
                     <p className="text-gray-500 text-sm font-medium">Veja a lista cobranças no Pix e envie a chave para os clientes.</p>
                 </button>
 
+                {/* Card 5: Adicionar Compra */}
+                <button
+                    onClick={() => setTelaAtual("adicionarCompra")}
+                    className="bg-white p-8 rounded-3xl shadow-sm border border-gray-200 hover:shadow-lg hover:border-orange-300 transition-all flex flex-col items-center text-center group active:scale-95"
+                    >
+                    <div className="w-20 h-20 bg-orange-50 text-[#ff5943] rounded-full flex items-center justify-center text-4xl mb-4 group-hover:scale-110 group-hover:bg-orange-100 transition-all duration-300">
+                        🧾
+                    </div>
+
+                    <h3 className="text-xl font-extrabold text-gray-800 mb-2">
+                        Adicionar Compra
+                    </h3>
+
+                    <p className="text-gray-500 text-sm font-medium">
+                        Registre manualmente uma compra na conta de um cliente.
+                    </p>
+                </button>
+
             </div>
         </div>
     );

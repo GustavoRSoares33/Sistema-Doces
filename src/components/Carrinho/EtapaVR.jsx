@@ -1,7 +1,7 @@
 // src/components/Carrinho/EtapaVR.jsx
 import { useState } from 'react';
 import { collection, addDoc, doc, setDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { db, auth } from '../../firebase';
 import logoVR from '../Images/logoVR.png';
 
 export default function EtapaVR({ 
@@ -21,47 +21,83 @@ export default function EtapaVR({
   });
 
   const confirmarPagamentoVR = async () => {
-    const apenasNumeros = telefoneVR.replace(/\D/g, '');
+    const emailAutenticado = auth.currentUser?.email;
+
+    if (!emailAutenticado) {
+      alert("Sua sessão expirou. Saia e entre novamente no aplicativo.");
+      return;
+    }
+
+    const apenasNumeros = telefoneVR.replace(/\D/g, "");
     const regexCelularBR = /^[1-9]{2}9[0-9]{8}$/;
 
     if (!regexCelularBR.test(apenasNumeros)) {
-      alert("Número inválido! O celular deve ter 11 dígitos começando com o DDD e o número 9.");
-      setEditandoTelefone(true); 
+      alert(
+        "Número inválido! O celular deve ter 11 dígitos começando com o DDD e o número 9."
+      );
+      setEditandoTelefone(true);
       return;
     }
 
     setProcessando(true);
+
     try {
       const telefoneFormatado = `55${apenasNumeros}`;
 
       const novaVenda = {
-        cliente: dadosUsuario?.nome || 'Cliente sem nome',
-        email: dadosUsuario?.email || 'Sem e-mail',
-        itens: carrinho.map(item => ({
-          id: item.id, nome: item.nome, preco: item.preco, quantidade: item.quantidade
+        cliente: dadosUsuario?.nome || "Cliente sem nome",
+
+        email: emailAutenticado,
+
+        itens: carrinho.map((item) => ({
+          id: item.id,
+          nome: item.nome,
+          preco: Number(item.preco),
+          quantidade: Number(item.quantidade),
         })),
-        total: valorTotal,
+
+        total: Number(valorTotal),
+
         data: new Date().toISOString(),
+
         pago: false,
-        aguardandoConfirmacao: false, 
+
+        aguardandoConfirmacao: false,
+
         telefone: telefoneFormatado,
-        metodoPagamento: 'vr'
+
+        metodoPagamento: "vr",
       };
 
       await addDoc(collection(db, "vendas"), novaVenda);
 
       if (idUsuario && editandoTelefone) {
         const usuarioRef = doc(db, "usuarios", idUsuario);
-        await setDoc(usuarioRef, { telefone: telefoneFormatado }, { merge: true });
+
+        await setDoc(
+          usuarioRef,
+          {
+            telefone: telefoneFormatado,
+          },
+          { merge: true }
+        );
       }
 
-      if (atualizarTotalPendente) atualizarTotalPendente();
+      if (atualizarTotalPendente) {
+        atualizarTotalPendente();
+      }
 
       irParaSucesso();
+
       setTimeout(() => fecharCarrinho(), 2500);
     } catch (error) {
       console.error("Erro ao confirmar VR:", error);
-      alert("Erro ao salvar pedido. Tente novamente.");
+
+      alert(
+        `Erro ao salvar pedido.\n\nCódigo: ${
+          error.code || "desconhecido"
+        }`
+      );
     } finally {
       setProcessando(false);
     }

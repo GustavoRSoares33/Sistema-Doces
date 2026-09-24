@@ -22,6 +22,7 @@ import HistoricoCompras from "./components/HistoricoCompras";
 import Cabebecalho from "./components/Cabeçalho/Cabecalho";
 import TelaLoja from "./components/TelaLoja/TelaLoja";
 import MenuAdmin from "./components/Admin/MenuAdmin";
+import AdicionarCompra from "./components/Admin/AdicionarCompra";
 import FechamentoVR from "./components/Admin/FechamentoVR";
 import FechamentoPix from "./components/Admin/FechamentoPix";
 import Rodape from "./components/Cabeçalho/Rodape";
@@ -341,6 +342,15 @@ export default function App() {
         {telaAtual === "fechamentoPix" && isAdmin && (
           <div className="w-full mt-4">
             <FechamentoPix voltarParaLoja={() => setTelaAtual("admin")} />
+          </div>
+        )}
+
+        {/* ---------------- TELA 7: ADICIONAR COMPRA ---------------- */}
+        {telaAtual === "adicionarCompra" && isAdmin && (
+          <div className="w-full mt-4">
+            <AdicionarCompra
+              voltarParaLoja={() => setTelaAtual("admin")}
+            />
           </div>
         )}
 

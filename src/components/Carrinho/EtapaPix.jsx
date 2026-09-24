@@ -1,7 +1,7 @@
 // src/components/Carrinho/EtapaPix.jsx
 import { useState } from "react";
 import { collection, addDoc } from "firebase/firestore";
-import { db } from "../../firebase";
+import { db, auth } from "../../firebase";
 import { CHAVE_PIX } from "../../config";
 import logoPix from "../Images/logoPix.png";
 
@@ -18,24 +18,46 @@ export default function EtapaPix({
 
   // Função 1: O cliente afirma que já pagou (Vai para "Em Análise")
   const confirmarPagamentoPix = async () => {
+    const emailAutenticado = auth.currentUser?.email;
+
+    if (!emailAutenticado) {
+      alert("Sua sessão expirou. Saia e entre novamente no aplicativo.");
+      return;
+    }
+
     setProcessando(true);
+
     try {
       const novaVenda = {
         cliente: dadosUsuario?.nome || "Cliente sem nome",
-        email: dadosUsuario?.email || "Sem e-mail",
+
+        email: emailAutenticado,
+
         itens: carrinho.map((item) => ({
           id: item.id,
           nome: item.nome,
-          preco: item.preco,
-          quantidade: item.quantidade,
+          preco: Number(item.preco),
+          quantidade: Number(item.quantidade),
         })),
-        total: valorTotal,
+
+        total: Number(valorTotal),
+
         data: new Date().toISOString(),
+
         pago: false,
-        aguardandoConfirmacao: true, // Avisa o admin para conferir o extrato
-        telefone: dadosUsuario?.telefone || "",
+
+        aguardandoConfirmacao: true,
+
+        telefone: String(dadosUsuario?.telefone || ""),
+
         metodoPagamento: "pix",
       };
+
+      // Proteção extra
+      if (!Number.isFinite(novaVenda.total) || novaVenda.total <= 0) {
+        alert("O valor do pedido é inválido. Entre em contato com a loja.");
+        return;
+      }
 
       await addDoc(collection(db, "vendas"), novaVenda);
 
@@ -44,10 +66,16 @@ export default function EtapaPix({
       }
 
       irParaSucesso();
+
       setTimeout(() => fecharCarrinho(), 2500);
     } catch (error) {
       console.error("Erro ao confirmar Pix:", error);
-      alert("Erro ao confirmar. Tente novamente.");
+
+      alert(
+        `Erro ao confirmar pagamento.\n\nCódigo: ${
+          error.code || "desconhecido"
+        }`
+      );
     } finally {
       setProcessando(false);
     }
@@ -55,22 +83,38 @@ export default function EtapaPix({
 
   // Função 2 (NOVA): O cliente gera o pedido mas não pagou ainda (Fica "Pendente")
   const pagarDepois = async () => {
+    const emailAutenticado = auth.currentUser?.email;
+
+    if (!emailAutenticado) {
+      alert("Sua sessão expirou. Saia e entre novamente no aplicativo.");
+      return;
+    }
+
     setProcessando(true);
+
     try {
       const novaVenda = {
         cliente: dadosUsuario?.nome || "Cliente sem nome",
-        email: dadosUsuario?.email || "Sem e-mail",
+
+        email: emailAutenticado,
+
         itens: carrinho.map((item) => ({
           id: item.id,
           nome: item.nome,
-          preco: item.preco,
-          quantidade: item.quantidade,
+          preco: Number(item.preco),
+          quantidade: Number(item.quantidade),
         })),
-        total: valorTotal,
+
+        total: Number(valorTotal),
+
         data: new Date().toISOString(),
+
         pago: false,
-        aguardandoConfirmacao: false, // Fica pendente de pagamento
-        telefone: dadosUsuario?.telefone || "",
+
+        aguardandoConfirmacao: false,
+
+        telefone: String(dadosUsuario?.telefone || ""),
+
         metodoPagamento: "pix",
       };
 
@@ -81,10 +125,16 @@ export default function EtapaPix({
       }
 
       irParaSucesso();
+
       setTimeout(() => fecharCarrinho(), 2500);
     } catch (error) {
       console.error("Erro ao gerar pedido pendente:", error);
-      alert("Erro ao salvar pedido. Tente novamente.");
+
+      alert(
+        `Erro ao salvar pedido.\n\nCódigo: ${
+          error.code || "desconhecido"
+        }`
+      );
     } finally {
       setProcessando(false);
     }
