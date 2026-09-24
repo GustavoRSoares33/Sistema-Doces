@@ -118,6 +118,11 @@ export default function EtapaPix({
         metodoPagamento: "pix",
       };
 
+      if (!Number.isFinite(novaVenda.total) || novaVenda.total <= 0) {
+        alert("O valor do pedido é inválido. Entre em contato com a loja.");
+        return;
+      }
+
       await addDoc(collection(db, "vendas"), novaVenda);
 
       if (atualizarTotalPendente) {

@@ -45,26 +45,54 @@ export default function App() {
 
   // Monitora se o usuário entrou ou saiu do aplicativo e busca o perfil
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setUsuario(user);
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      setUsuario(user);
 
-        // Busca o perfil extra (Nome) no banco de dados
-        const perfilDoc = await getDoc(doc(db, "usuarios", user.uid));
+      try {
+        const perfilDoc = await getDoc(
+          doc(db, "usuarios", user.uid)
+        );
+
         if (perfilDoc.exists()) {
-          setDadosPerfil(perfilDoc.data());
+          setDadosPerfil({
+            ...perfilDoc.data(),
+
+            // Authentication é a fonte oficial do e-mail
+            email: user.email,
+          });
         } else {
-          // Caso seja uma conta antiga sem perfil, usamos o e-mail como fallback
-          setDadosPerfil({ nome: user.email, email: user.email });
+          // Fallback para contas antigas sem documento em "usuarios"
+          setDadosPerfil({
+            nome: user.displayName || user.email,
+            email: user.email,
+            telefone: "",
+          });
         }
-      } else {
-        setUsuario(null);
-        setDadosPerfil(null);
+      } catch (error) {
+        console.error(
+          "Erro ao carregar perfil do usuário:",
+          error
+        );
+
+        // Mesmo que dê problema no Firestore,
+        // ainda temos os dados básicos do Authentication
+        setDadosPerfil({
+          nome: user.displayName || user.email,
+          email: user.email,
+          telefone: "",
+        });
       }
-      setCarregandoAuth(false);
-    });
-    return () => unsubscribe();
-  }, []);
+    } else {
+      setUsuario(null);
+      setDadosPerfil(null);
+    }
+
+    setCarregandoAuth(false);
+  });
+
+  return () => unsubscribe();
+}, []);
 
   // Busca os produtos (só busca se estiver logado)
   useEffect(() => {

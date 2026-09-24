@@ -69,18 +69,31 @@ export default function EtapaVR({
         metodoPagamento: "vr",
       };
 
+      if (!Number.isFinite(novaVenda.total) || novaVenda.total <= 0) {
+        alert("O valor do pedido é inválido. Entre em contato com a loja.");
+        return;
+      }
+
       await addDoc(collection(db, "vendas"), novaVenda);
 
       if (idUsuario && editandoTelefone) {
-        const usuarioRef = doc(db, "usuarios", idUsuario);
+        try {
+          const usuarioRef = doc(db, "usuarios", idUsuario);
 
-        await setDoc(
-          usuarioRef,
-          {
-            telefone: telefoneFormatado,
-          },
-          { merge: true }
-        );
+          await setDoc(
+            usuarioRef,
+            {
+              telefone: telefoneFormatado,
+              email: emailAutenticado,
+            },
+            { merge: true }
+          );
+        } catch (erroPerfil) {
+          console.error(
+            "Venda salva, mas não foi possível atualizar o perfil:",
+            erroPerfil
+          );
+        }
       }
 
       if (atualizarTotalPendente) {
@@ -88,7 +101,6 @@ export default function EtapaVR({
       }
 
       irParaSucesso();
-
       setTimeout(() => fecharCarrinho(), 2500);
     } catch (error) {
       console.error("Erro ao confirmar VR:", error);
