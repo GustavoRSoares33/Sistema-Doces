@@ -1,16 +1,19 @@
-import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase'; 
+import { useState, useEffect } from "react";
+import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { db } from "../../firebase";
 
-import { enviarCobrancaWhatsApp } from '../utils/EnviarMensagemWhatsapp';
+import { enviarCobrancaWhatsApp } from "../utils/EnviarMensagemWhatsapp";
 
 export default function FechamentoVR({ voltarParaLoja }) {
   const [clientesDevedores, setClientesDevedores] = useState([]);
   const [carregando, setCarregando] = useState(true);
-  
+
   const [linksVR, setLinksVR] = useState({});
   const [baixandoPagamento, setBaixandoPagamento] = useState({});
-  const [processandoAcao, setProcessandoAcao] = useState(false); // Evita duplo clique
+  const [processandoAcao, setProcessandoAcao] = useState(false);
+
+  const [termoBusca, setTermoBusca] = useState("");
+  const [filtroCobranca, setFiltroCobranca] = useState("todos");
 
   useEffect(() => {
     const buscarPendencias = async () => {
@@ -18,40 +21,44 @@ export default function FechamentoVR({ voltarParaLoja }) {
         const querySnapshot = await getDocs(collection(db, "vendas"));
         const agrupado = {};
 
-        querySnapshot.docs.forEach(documento => {
+        querySnapshot.docs.forEach((documento) => {
           const venda = documento.data();
-          
-          if (!venda.pago && !venda.aguardandoConfirmacao && venda.metodoPagamento === 'vr') {
+
+          if (
+            !venda.pago &&
+            !venda.aguardandoConfirmacao &&
+            venda.metodoPagamento === "vr"
+          ) {
             const email = venda.email;
-            
+
             if (!agrupado[email]) {
               agrupado[email] = {
                 nome: venda.cliente,
                 email: email,
-                telefone: venda.telefone || '', 
+                telefone: venda.telefone || "",
                 totalDevido: 0,
                 qtdPedidos: 0,
                 itensComprados: {},
                 vendaIds: [],
-                todasCobradas: true // Começa verdadeiro. Se achar uma venda não cobrada, vira false
+                todasCobradas: true, // Começa verdadeiro. Se achar uma venda não cobrada, vira false
               };
             } else {
               if (!agrupado[email].telefone && venda.telefone) {
                 agrupado[email].telefone = venda.telefone;
               }
             }
-            
+
             // Verifica no banco de dados se essa venda específica já teve cobrança enviada
             if (!venda.cobrancaEnviada) {
               agrupado[email].todasCobradas = false;
             }
-            
+
             agrupado[email].totalDevido += Number(venda.total);
             agrupado[email].qtdPedidos += 1;
             agrupado[email].vendaIds.push(documento.id);
 
             if (venda.itens) {
-              venda.itens.forEach(item => {
+              venda.itens.forEach((item) => {
                 if (!agrupado[email].itensComprados[item.nome]) {
                   agrupado[email].itensComprados[item.nome] = 0;
                 }
@@ -61,7 +68,7 @@ export default function FechamentoVR({ voltarParaLoja }) {
           }
         });
 
-        Object.values(agrupado).forEach(cliente => {
+        Object.values(agrupado).forEach((cliente) => {
           cliente.vendaIds.sort();
         });
 
@@ -77,27 +84,31 @@ export default function FechamentoVR({ voltarParaLoja }) {
   }, []);
 
   const handleLinkChange = (email, valor) => {
-    setLinksVR(prev => ({ ...prev, [email]: valor }));
+    setLinksVR((prev) => ({ ...prev, [email]: valor }));
   };
 
   const handleDispararWhatsApp = async (cliente) => {
     const linkParaPagar = linksVR[cliente.email];
-    const sucesso = enviarCobrancaWhatsApp(cliente, linkParaPagar, 'vr');
+    const sucesso = enviarCobrancaWhatsApp(cliente, linkParaPagar, "vr");
 
     if (sucesso) {
       setProcessandoAcao(true);
       try {
         // Atualiza NO FIREBASE que a cobrança foi enviada
-        const promessas = cliente.vendaIds.map(idDaVenda => {
-          return updateDoc(doc(db, "vendas", idDaVenda), { cobrancaEnviada: true });
+        const promessas = cliente.vendaIds.map((idDaVenda) => {
+          return updateDoc(doc(db, "vendas", idDaVenda), {
+            cobrancaEnviada: true,
+          });
         });
         await Promise.all(promessas);
 
         // Atualiza na TELA
-        setClientesDevedores(prev => prev.map(c => 
-          c.email === cliente.email ? { ...c, todasCobradas: true } : c
-        ));
-        setLinksVR(prev => ({ ...prev, [cliente.email]: '' }));
+        setClientesDevedores((prev) =>
+          prev.map((c) =>
+            c.email === cliente.email ? { ...c, todasCobradas: true } : c,
+          ),
+        );
+        setLinksVR((prev) => ({ ...prev, [cliente.email]: "" }));
       } catch (error) {
         console.error("Erro ao salvar status de envio no banco:", error);
       } finally {
@@ -110,15 +121,19 @@ export default function FechamentoVR({ voltarParaLoja }) {
     setProcessandoAcao(true);
     try {
       // Reverte NO FIREBASE o status de cobrança enviada
-      const promessas = cliente.vendaIds.map(idDaVenda => {
-        return updateDoc(doc(db, "vendas", idDaVenda), { cobrancaEnviada: false });
+      const promessas = cliente.vendaIds.map((idDaVenda) => {
+        return updateDoc(doc(db, "vendas", idDaVenda), {
+          cobrancaEnviada: false,
+        });
       });
       await Promise.all(promessas);
 
       // Atualiza na TELA
-      setClientesDevedores(prev => prev.map(c => 
-        c.email === cliente.email ? { ...c, todasCobradas: false } : c
-      ));
+      setClientesDevedores((prev) =>
+        prev.map((c) =>
+          c.email === cliente.email ? { ...c, todasCobradas: false } : c,
+        ),
+      );
     } catch (error) {
       console.error("Erro ao cancelar envio no banco:", error);
     } finally {
@@ -127,99 +142,220 @@ export default function FechamentoVR({ voltarParaLoja }) {
   };
 
   const concluirPagamento = async (cliente) => {
-    const confirmacao = window.confirm(`Tem certeza que ${cliente.nome} já pagou os R$ ${cliente.totalDevido.toFixed(2).replace('.', ',')}?`);
+    const confirmacao = window.confirm(
+      `Tem certeza que ${cliente.nome} já pagou os R$ ${cliente.totalDevido.toFixed(2).replace(".", ",")}?`,
+    );
     if (!confirmacao) return;
 
-    setBaixandoPagamento(prev => ({ ...prev, [cliente.email]: true }));
+    setBaixandoPagamento((prev) => ({ ...prev, [cliente.email]: true }));
 
     try {
-      const promessasAtualizacao = cliente.vendaIds.map(idDaVenda => {
+      const promessasAtualizacao = cliente.vendaIds.map((idDaVenda) => {
         const vendaRef = doc(db, "vendas", idDaVenda);
         return updateDoc(vendaRef, { pago: true });
       });
 
       await Promise.all(promessasAtualizacao);
 
-      setClientesDevedores(prev => prev.filter(c => c.email !== cliente.email));
+      setClientesDevedores((prev) =>
+        prev.filter((c) => c.email !== cliente.email),
+      );
       alert(`✅ Pagamento de ${cliente.nome} baixado com sucesso!`);
     } catch (error) {
       console.error("Erro ao concluir pagamento:", error);
       alert("Erro ao tentar baixar o pagamento. Verifique o banco de dados.");
     } finally {
-      setBaixandoPagamento(prev => ({ ...prev, [cliente.email]: false }));
+      setBaixandoPagamento((prev) => ({ ...prev, [cliente.email]: false }));
     }
   };
+
+  const clientesFiltrados = clientesDevedores.filter((cliente) => {
+    const termo = termoBusca.toLowerCase().trim();
+
+    const passaBusca =
+      !termo ||
+      cliente.nome?.toLowerCase().includes(termo) ||
+      cliente.email?.toLowerCase().includes(termo) ||
+      cliente.telefone?.includes(termo);
+
+    const passaFiltroCobranca =
+      filtroCobranca === 'todos' ||
+      (filtroCobranca === 'cobrados' && cliente.todasCobradas) ||
+      (filtroCobranca === 'naoCobrados' && !cliente.todasCobradas)
+
+    return passaBusca && passaFiltroCobranca;
+  });
 
   return (
     <div className="w-full flex flex-col gap-6 animate-fade-in-up">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex justify-between items-center w-full">
-        <h2 className="text-2xl font-extrabold text-gray-800">Fechamento do Mês (VR)</h2>
-        <button 
-          onClick={voltarParaLoja} 
+        <h2 className="text-2xl font-extrabold text-gray-800">
+          Fechamento do Mês (VR)
+        </h2>
+        <button
+          onClick={voltarParaLoja}
           className="group flex items-center gap-2 text-sm text-gray-600 font-bold bg-white hover:bg-gray-50 px-4 py-2.5 rounded-xl border border-gray-200 transition-all active:scale-95 shadow-sm"
         >
-          <span className="transition-transform duration-300 group-hover:-translate-x-1">←</span>
+          <span className="transition-transform duration-300 group-hover:-translate-x-1">
+            ←
+          </span>
           Voltar ao Menu
         </button>
       </div>
 
+      {!carregando && clientesDevedores.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+              🔍
+            </span>
+
+            <input
+              type="text"
+              placeholder="Buscar por nome, e-mail ou telefone..."
+              value={termoBusca}
+              onChange={(e) => setTermoBusca(e.target.value)}
+              className="w-full pl-10 pr-10 py-3 bg-slate-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+            />
+
+            {termoBusca && (
+              <button
+                type="button"
+                onClick={() => setTermoBusca("")}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-red-500"
+                title="Limpar busca"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="flex bg-slate-100 p-1 rounded-lg w-full lg:w-auto overflow-x-auto">
+              <button
+                onClick={() => setFiltroCobranca('todos')}
+                className={`whitespace-nowrap flex-1 lg:flex-none px-4 py-1.5 text-sm font-bold rounded-md transition-all ${filtroCobranca === 'todos' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Todos
+              </button>
+              <button
+                onClick={() => setFiltroCobranca('cobrados')}
+                className={`whitespace-nowrap flex-1 lg:flex-none px-4 py-1.5 text-sm font-bold rounded-md transition-all ${filtroCobranca === 'cobrados' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Cobrados
+              </button>
+              <button
+                onClick={() => setFiltroCobranca('naoCobrados')}
+                className={`whitespace-nowrap flex-1 lg:flex-none px-4 py-1.5 text-sm font-bold rounded-md transition-all ${filtroCobranca === 'naoCobrados' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Não Cobrados
+              </button>
+              
+            </div>
+
+          <p className="text-xs text-gray-400 mt-2">
+            Exibindo {clientesFiltrados.length} de {clientesDevedores.length}{" "}
+            clientes
+          </p>
+        </div>
+      )}
       {carregando ? (
-        <p className="text-center text-gray-500 my-10 font-semibold animate-pulse">Calculando dívidas do banco...</p>
+        <p className="text-center text-gray-500 my-10 font-semibold animate-pulse">
+          Calculando dívidas do banco...
+        </p>
       ) : clientesDevedores.length === 0 ? (
         <div className="bg-white p-10 rounded-3xl text-center shadow-sm border border-gray-100 flex flex-col items-center">
-          <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center text-4xl mb-4">🎉</div>
-          <p className="text-gray-500 text-lg font-bold">Nenhum cliente com dívidas de VR pendentes!</p>
+          <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center text-4xl mb-4">
+            🎉
+          </div>
+
+          <p className="text-gray-500 text-lg font-bold">
+            Nenhum cliente com dívidas de VR pendentes!
+          </p>
+        </div>
+      ) : clientesFiltrados.length === 0 ? (
+        <div className="bg-white p-10 rounded-3xl text-center shadow-sm border border-gray-100">
+          <p className="text-gray-500 font-bold">
+  {termoBusca
+    ? `Nenhum cliente encontrado para "${termoBusca}".`
+    : filtroCobranca === "cobrados"
+      ? "Nenhum cliente cobrado no momento."
+      : filtroCobranca === "naoCobrados"
+        ? "Nenhum cliente aguardando cobrança."
+        : "Nenhum cliente encontrado."}
+</p>
+
+          {termoBusca && (
+  <button
+    onClick={() => setTermoBusca("")}
+    className="mt-4 text-emerald-600 font-bold hover:underline"
+  >
+    Limpar busca
+  </button>
+)}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {clientesDevedores.map((cliente) => {
+          {clientesFiltrados.map((cliente) => {
             const jaFoiEnviado = cliente.todasCobradas;
 
             return (
-              <div key={cliente.email} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 flex flex-col gap-4 hover:shadow-md transition-shadow">
-                
+              <div
+                key={cliente.email}
+                className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 flex flex-col gap-4 hover:shadow-md transition-shadow"
+              >
                 <div className="flex flex-col xl:flex-row items-center gap-4 w-full">
                   <div className="w-full xl:w-1/3">
-                    <h3 className="font-bold text-gray-900 text-lg truncate">{cliente.nome}</h3>
-                    <p className="text-sm text-gray-500 truncate">{cliente.email}</p>
+                    <h3 className="font-bold text-gray-900 text-lg truncate">
+                      {cliente.nome}
+                    </h3>
+                    <p className="text-sm text-gray-500 truncate">
+                      {cliente.email}
+                    </p>
                     <p className="text-xs text-gray-400 mt-1 font-mono">
-                      {cliente.telefone ? `📱 ${cliente.telefone}` : '⚠️ Sem telefone'}
+                      {cliente.telefone
+                        ? `📱 ${cliente.telefone}`
+                        : "⚠️ Sem telefone"}
                     </p>
                   </div>
 
                   <div className="w-full xl:w-1/4 text-left xl:text-center bg-amber-50 p-3 rounded-xl border border-amber-100">
-                    <p className="text-xs font-bold text-amber-600 uppercase">Devendo</p>
+                    <p className="text-xs font-bold text-amber-600 uppercase">
+                      Devendo
+                    </p>
                     <p className="text-xl font-extrabold text-amber-700">
-                      R$ {cliente.totalDevido.toFixed(2).replace('.', ',')}
+                      R$ {cliente.totalDevido.toFixed(2).replace(".", ",")}
                     </p>
                     <p className="text-[11px] font-bold text-amber-600/70">
-                      {cliente.qtdPedidos} {cliente.qtdPedidos === 1 ? 'pedido' : 'pedidos'}
+                      {cliente.qtdPedidos}{" "}
+                      {cliente.qtdPedidos === 1 ? "pedido" : "pedidos"}
                     </p>
                   </div>
 
                   <div className="w-full xl:w-auto flex-grow flex flex-col sm:flex-row gap-2">
-                    <input 
-                      type="text" 
-                      placeholder="Cole o link do VR aqui..." 
-                      value={linksVR[cliente.email] || ''}
-                      onChange={(e) => handleLinkChange(cliente.email, e.target.value)}
+                    <input
+                      type="text"
+                      placeholder="Cole o link do VR aqui..."
+                      value={linksVR[cliente.email] || ""}
+                      onChange={(e) =>
+                        handleLinkChange(cliente.email, e.target.value)
+                      }
                       disabled={jaFoiEnviado || processandoAcao}
                       className="w-full sm:flex-grow bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:bg-gray-100 disabled:text-gray-400 transition-colors"
                     />
-                    
+
                     <div className="flex gap-2 w-full sm:w-auto shrink-0">
                       <button
                         onClick={() => handleDispararWhatsApp(cliente)}
                         disabled={jaFoiEnviado || processandoAcao}
                         className={`flex-1 sm:flex-none font-bold px-4 py-3 rounded-xl shadow-sm transition-all text-sm ${
-                          jaFoiEnviado 
-                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-                            : 'bg-emerald-500 hover:bg-emerald-600 text-white active:scale-95'
+                          jaFoiEnviado
+                            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                            : "bg-emerald-500 hover:bg-emerald-600 text-white active:scale-95"
                         }`}
                       >
-                        {jaFoiEnviado ? '✓ Enviado' : '🟢 Cobrar'}
+                        {jaFoiEnviado ? "✓ Enviado" : "🟢 Cobrar"}
                       </button>
-                      
+
                       {jaFoiEnviado && (
                         <>
                           <button
@@ -227,7 +363,9 @@ export default function FechamentoVR({ voltarParaLoja }) {
                             disabled={baixandoPagamento[cliente.email]}
                             className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold px-4 py-3 rounded-xl shadow-sm transition-all active:scale-95 text-sm flex items-center justify-center animate-fade-in-up"
                           >
-                            {baixandoPagamento[cliente.email] ? '...' : '✅ Concluir'}
+                            {baixandoPagamento[cliente.email]
+                              ? "..."
+                              : "✅ Concluir"}
                           </button>
 
                           <button
@@ -249,14 +387,16 @@ export default function FechamentoVR({ voltarParaLoja }) {
                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">
                       Itens comprados:
                     </span>
-                    {Object.entries(cliente.itensComprados).map(([nomeItem, quantidade], index) => (
-                      <span 
-                        key={index} 
-                        className="text-xs font-bold bg-white border border-gray-200 text-gray-700 px-2.5 py-1 rounded-lg shadow-sm"
-                      >
-                        {quantidade}x {nomeItem}
-                      </span>
-                    ))}
+                    {Object.entries(cliente.itensComprados).map(
+                      ([nomeItem, quantidade], index) => (
+                        <span
+                          key={index}
+                          className="text-xs font-bold bg-white border border-gray-200 text-gray-700 px-2.5 py-1 rounded-lg shadow-sm"
+                        >
+                          {quantidade}x {nomeItem}
+                        </span>
+                      ),
+                    )}
                   </div>
                 )}
               </div>
