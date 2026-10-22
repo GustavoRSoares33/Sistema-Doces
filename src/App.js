@@ -26,6 +26,7 @@ import AdicionarCompra from "./components/Admin/AdicionarCompra";
 import FechamentoVR from "./components/Admin/FechamentoVR";
 import FechamentoPix from "./components/Admin/FechamentoPix";
 import Rodape from "./components/Cabeçalho/Rodape";
+import AdicionarUsuario from "./components/Admin/AdicionarUsuario";
 
 // === ATENÇÃO: COLOQUE O SEU E-MAIL AQUI PARA SER O ADMIN ===
 const EMAILS_ADMIN = ["gugars04@gmail.com", "vitorrodriguessoares@outlook.com"];
@@ -377,6 +378,15 @@ export default function App() {
         {telaAtual === "adicionarCompra" && isAdmin && (
           <div className="w-full mt-4">
             <AdicionarCompra
+              voltarParaLoja={() => setTelaAtual("admin")}
+            />
+          </div>
+        )}
+
+        {/* ---------------- TELA 7: ADICIONAR USUARIO ---------------- */}
+        {telaAtual === "adicionarUsuario" && isAdmin && (
+          <div className="w-full mt-4">
+            <AdicionarUsuario
               voltarParaLoja={() => setTelaAtual("admin")}
             />
           </div>
