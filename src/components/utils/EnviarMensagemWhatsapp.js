@@ -4,17 +4,17 @@ export const enviarCobrancaWhatsApp = (
   metodo = "vr",
 ) => {
   // 1. Validação
-  if (!chaveOuLink) {
-    alert(
-      `⚠️ Adicione ${
-        metodo === "pix"
-          ? "a chave Pix no arquivo .env"
-          : "o link de pagamento"
-      } antes de enviar!`,
-    );
+  // if (!chaveOuLink) {
+  //   alert(
+  //     `⚠️ Adicione ${
+  //       metodo === "pix"
+  //         ? "a chave Pix no arquivo .env"
+  //         : "o link de pagamento"
+  //     } antes de enviar!`,
+  //   );
 
-    return false;
-  }
+  //   return false;
+  // }
 
   if (!cliente.telefone) {
     alert(
@@ -61,17 +61,33 @@ export const enviarCobrancaWhatsApp = (
       cliente.totalMes ??
       0,
   );
-
+  let textoMensagem = "";
   // 6. Montar mensagem
-  const textoMensagem =
-    `Olá, *${cliente.nome}*! Tudo bem? \n\n` +
-    `Passando para enviar o resumo e ${textoMetodo} referente às suas compras.\n\n` +
-    `*Seus doces:*\n${listaItens}\n` +
-    `*Valor Total:* R$ ${valorTotal
-      .toFixed(2)
-      .replace(".", ",")}\n\n` +
-    `${textoChamada}\n${chaveOuLink}\n\n` +
-    `Muito obrigado pela preferência!`;
+  if(metodo === "pix"){
+    textoMensagem =
+      `Olá, *${cliente.nome}*! Tudo bem? \n\n` +
+      `Passando para enviar o resumo e ${textoMetodo} referente às suas compras.\n\n` +
+      `*Seus doces:*\n${listaItens}\n` +
+      `*Valor Total:* R$ ${valorTotal
+        .toFixed(2)
+        .replace(".", ",")}\n\n` +
+      `${textoChamada}\n${chaveOuLink}\n\n` +
+      `Muito obrigado pela preferência!`;
+  }else{
+    textoMensagem =
+      `Olá, *${cliente.nome}*! Tudo bem? \n\n` +
+      `Estou entrando em contato porque o sistema de geração de links da VR Benefícios está indisponível há mais de uma semana e ainda não recebi uma previsão de normalização.\n\n` +
+      `Enquanto o sistema da VR não volta, estou recebendo por PIX ou por link de pagamento com cartão de crédito ou débito.\n\n` +
+      `*Seus doces:*\n${listaItens}\n` +
+      `*Valor Total:* R$ ${valorTotal
+        .toFixed(2)
+        .replace(".", ",")}\n\n` +
+      `Chave PIX (CNPJ): 35477547000167\n\n` +
+      `Caso prefira aguardar a normalização da VR, me avise para que eu possa registrar seu pagamento em aberto até a liberação do serviço.\n\n` +
+      `Obrigado pela compreensão!`;
+  }
+
+  
 
   // 7. Codificar
   const textoCodificado =

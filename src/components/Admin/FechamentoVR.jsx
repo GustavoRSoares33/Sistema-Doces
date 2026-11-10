@@ -226,10 +226,10 @@ export default function FechamentoVR({ voltarParaLoja }) {
   const handleDispararWhatsApp = async (cliente) => {
     const linkParaPagar = linksVR[cliente.email];
 
-    if (!linkParaPagar?.trim()) {
-      alert("Cole o link de pagamento do VR antes de cobrar.");
-      return;
-    }
+    // if (!linkParaPagar?.trim()) {
+    //   alert("Cole o link de pagamento do VR antes de cobrar.");
+    //   return;
+    // }
 
     const sucesso = enviarCobrancaWhatsApp(cliente, linkParaPagar, "vr");
 
